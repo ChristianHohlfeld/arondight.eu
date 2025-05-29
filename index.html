@@ -6,8 +6,32 @@
   <title>Arondight45 – Advanced Combat Simulation Platform</title>
   <meta name="description" content="Arondight45 is a modular, high-fidelity combat simulation system designed for realism, training, and performance. Built with ESP32, recoil, IR hit detection, and tactical feedback." />
 
-  <!-- ✅ Precompiled Tailwind + DaisyUI CSS -->
-  <link href="https://cdn.jsdelivr.net/gh/saadeghi/daisyui@3.8.2/dist/full.css" rel="stylesheet" />
+  <!-- ✅ Tailwind CSS CDN (no config, no DaisyUI plugin) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- ✅ Set 'business' theme manually via data-theme -->
+  <style>
+    [data-theme="business"] {
+      --p: #1c4e80;
+      --pc: #ffffff;
+      --s: #0ea5e9;
+      --sc: #ffffff;
+      --a: #5b21b6;
+      --ac: #ffffff;
+      --n: #26323c;
+      --nc: #ffffff;
+      --b1: #1e293b;
+      --bc: #ffffff;
+      --in: #0ea5e9;
+      --inc: #ffffff;
+      --su: #10b981;
+      --suc: #ffffff;
+      --wa: #f59e0b;
+      --wac: #ffffff;
+      --er: #ef4444;
+      --erc: #ffffff;
+    }
+  </style>
 
   <!-- 🔍 SEO -->
   <meta name="author" content="Christian Hohlfeld" />
@@ -27,9 +51,8 @@
   <meta name="twitter:description" content="Precision-engineered combat training built for performance, realism, and modular expandability." />
   <meta name="twitter:image" content="https://arondight.eu/preview.jpg" />
 
-  <!-- 📱 Favicon + Icons -->
-  <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABRElEQVR4nGNUM7JhoCVgoqnpoxaMWj..." />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <!-- 📱 Favicon (base64) -->
+  <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABRElEQVR4nGNUM7JhoCVgoqnpoxaMWj...==">
 
   <!-- 🧠 schema.org Structured Data -->
   <script type="application/ld+json">
@@ -45,17 +68,12 @@
     "publisher": {
       "@type": "Organization",
       "name": "Christian Hohlfeld",
-      "url": "https://arondight.eu",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://arondight.eu/favicon.ico"
-      }
+      "url": "https://arondight.eu"
     },
     "description": "Arondight45 is a modular, high-fidelity combat simulation system designed for realism, training, and performance."
   }
   </script>
 </head>
-
 
 <body class="bg-base-100 text-base-content">
 
