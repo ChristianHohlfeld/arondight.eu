@@ -6,14 +6,14 @@
   <title>Arondight45 – Advanced Combat Simulation Platform</title>
   <meta name="description" content="Arondight45 is a modular, high-fidelity combat simulation system designed for realism, training, and performance. Built with ESP32, recoil, IR hit detection, and tactical feedback." />
 
-  <!-- 🌐 Tailwind CSS + DaisyUI via CDN -->
+  <!-- ✅ Tailwind + DaisyUI via CDN (no build needed) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
+      plugins: [window.daisyui],
       theme: {
         extend: {}
       },
-      plugins: [window.daisyui],
       daisyui: {
         themes: ["business"]
       }
@@ -39,7 +39,7 @@
   <meta name="twitter:description" content="Precision-engineered combat training built for performance, realism, and modular expandability." />
   <meta name="twitter:image" content="https://arondight.eu/preview.jpg" />
 
-  <!-- 📱 Favicon + Icons -->
+  <!-- 📱 Favicon (optional but recommended) -->
   <link rel="icon" href="/favicon.ico" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
@@ -67,6 +67,7 @@
   }
   </script>
 </head>
+
 
 <body class="bg-base-100 text-base-content">
 
