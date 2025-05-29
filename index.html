@@ -4,48 +4,33 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Arondight45 – Advanced Combat Simulation Platform</title>
-  <meta name="description" content="Arondight45 is a modular, high-fidelity combat simulation system designed for realism, training, and performance. Built with ESP32, recoil, IR hit detection, and tactical feedback.">
+  <meta name="description" content="Arondight45 is a modular, high-fidelity combat simulation system designed for realism, training, and performance.">
 
-  <!-- ✅ 1-Datei-CDN: Tailwind + daisyUI (v5-ready, prod-safe) -->
-  <link href="https://cdn.jsdelivr.net/npm/daisyui@5/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <!-- daisyUI v5  + Tailwind-Browser runtime  ➜ zero build, prod-geeignet -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
-  <!-- 🎨 Custom-Theme-Overrides (primär-Button in #26323C usw.) -->
-  <style>
-    [data-theme="business"]{
-      --p:#1c4e80; --pc:#ffffff;
-      --s:#0ea5e9; --sc:#ffffff;
-      --a:#5b21b6; --ac:#ffffff;
-      --n:#26323c; --nc:#ffffff;
-      --b1:#1e293b; --bc:#ffffff;
-      --in:#0ea5e9;--inc:#ffffff;
-      --su:#10b981;--suc:#ffffff;
-      --wa:#f59e0b;--wac:#ffffff;
-      --er:#ef4444;--erc:#ffffff
-    }
-  </style>
+  <!-- falls du ALLE 35 Themes gleichzeitig brauchst, zusätzlich: -->
+  <!-- <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" /> -->
 
-  <!-- 🔍 SEO -->
-  <meta name="author" content="Christian Hohlfeld">
-  <meta name="robots" content="index, follow">
-  <link rel="canonical" href="https://arondight.eu/">
+  <!-- SEO / Open Graph / Twitter (unverändert) -->
+  <meta name="author" content="Christian Hohlfeld" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://arondight.eu/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://arondight.eu/" />
+  <meta property="og:title" content="Arondight45 – Advanced Combat Simulation Platform" />
+  <meta property="og:description" content="Precision-engineered combat training built for performance, realism, and modular expandability." />
+  <meta property="og:image" content="https://arondight.eu/preview.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Arondight45 – Advanced Combat Simulation Platform" />
+  <meta name="twitter:description" content="Precision-engineered combat training built for performance, realism, and modular expandability." />
+  <meta name="twitter:image" content="https://arondight.eu/preview.jpg" />
 
-  <!-- 🌐 Open Graph -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://arondight.eu/">
-  <meta property="og:title" content="Arondight45 – Advanced Combat Simulation Platform">
-  <meta property="og:description" content="Precision-engineered combat training built for performance, realism, and modular expandability.">
-  <meta property="og:image" content="https://arondight.eu/preview.jpg">
+  <!-- Favicon (Base64) -->
+  <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAA...==">
 
-  <!-- 🐦 Twitter Cards -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Arondight45 – Advanced Combat Simulation Platform">
-  <meta name="twitter:description" content="Precision-engineered combat training built for performance, realism, and modular expandability.">
-  <meta name="twitter:image" content="https://arondight.eu/preview.jpg">
-
-  <!-- 📱 Favicon (Base64, 32×32 px, dunkel #26323C mit weißem „A“) -->
-  <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABN0lEQVR4nI3US0oDQRBE4U8BhAhAhAhAhQgQgQgQgQgQ8RkDB4V1bGxkv7p3h5LlZ7Jk5sx7k3FdSf3F6DW99+2FFfM0YSUGmqNPTIraQS5wG9U3Ek2oT04q2kEeUBvmYyouiV3gCTy6M8VXrpD3nAdfcscq3wM1+gTPPLuHvreca3syAVCqu+IMC2GlB8FlPsGKjgNoZUH2GXfgQKOA2BlCfYZX+JA3HeM7oU9wj5VgpHFEKejVQVH1ZKTF1Yz6+w1KDSh0nSvSZNF3kkWi1OcJSzXKWFZjrqcOITyZhzK/X3qYixHwZsu6yBV7zogcmlK+1L+uMMi63ADWI7pvXsDyLjBJZa+FcKdFkXXHYRjXShczz4HLk3dR9g1+tAwNCLxNqMzbNosD2CLOrXfiKw7O51GyjauZpsRbML7I7XzMxYAAAAASUVORK5CYII=">
-
-  <!-- 🧠 schema.org -->
+  <!-- schema.org JSON-LD (unverändert) -->
   <script type="application/ld+json">
   {
     "@context":"https://schema.org",
@@ -58,6 +43,7 @@
   }
   </script>
 </head>
+
 
 <body class="bg-base-100 text-base-content">
 
