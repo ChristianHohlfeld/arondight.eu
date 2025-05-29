@@ -6,47 +6,60 @@
   <title>Arondight45 – Advanced Combat Simulation Platform</title>
   <meta name="description" content="Arondight45 is a modular, high-fidelity combat simulation system designed for realism, training, and performance.">
 
-  <!-- daisyUI v5  + Tailwind-Browser runtime  ➜ zero build, prod-geeignet -->
+  <!-- daisyUI v5 + Tailwind (browser runtime) → keine Build-Tools nötig -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
-  <!-- falls du ALLE 35 Themes gleichzeitig brauchst, zusätzlich: -->
-  <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
+  <!-- eigenes Farbschema (business-Preset verfeinert) -->
+  <style>
+    [data-theme="business"]{
+      --p:#1c4e80; --pc:#ffffff;
+      --s:#0ea5e9; --sc:#ffffff;
+      --a:#5b21b6; --ac:#ffffff;
+      --n:#26323c; --nc:#ffffff;
+      --b1:#1e293b; --bc:#ffffff;
+      --in:#0ea5e9; --inc:#ffffff;
+      --su:#10b981;--suc:#ffffff;
+      --wa:#f59e0b;--wac:#ffffff;
+      --er:#ef4444;--erc:#ffffff;
+    }
+  </style>
 
-  <!-- SEO / Open Graph / Twitter (unverändert) -->
+  <!-- SEO -->
   <meta name="author" content="Christian Hohlfeld" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://arondight.eu/" />
+
+  <!-- Open Graph -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://arondight.eu/" />
   <meta property="og:title" content="Arondight45 – Advanced Combat Simulation Platform" />
   <meta property="og:description" content="Precision-engineered combat training built for performance, realism, and modular expandability." />
   <meta property="og:image" content="https://arondight.eu/preview.jpg" />
+
+  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Arondight45 – Advanced Combat Simulation Platform" />
   <meta name="twitter:description" content="Precision-engineered combat training built for performance, realism, and modular expandability." />
   <meta name="twitter:image" content="https://arondight.eu/preview.jpg" />
 
-  <!-- Favicon (Base64) -->
-  <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABQUlEQVR4nGNUM7JhoCVgoqnpoxaMWjBqAX0sYCFS3coFMwx0tSFs==">
+  <!-- Favicon (base-64 PNG, 32×32 px) -->
+  <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABQUlEQVR4nGNUM7JhoCVgoqnpoxaMWjBqAX0sYCFS3coFMwx0tSFsr5CYu/cfEqmRKB/IyUjDTWdgYPD3difSdGIt8PNyQ+b6ergyMjJS34Lfv3/vPXCEgYFBSlLCxFCPahYY6GrLy8owMDAcP3V23eZtEEF/bw+qWQAPn137Dh45fur7jx8MDAzuzg5sbKxUsICFhcXLzZmBgeHvv397Dx758fPnkeOnGBgY+Hh5HG2tqGCBnZW5oAA/AwPD2fOX3r3/wMDAsHv/IYiUvxdRoUQgH8DDx8zY4ObZwyh2W5vz8/F9/PQJvwn4fMDDze1kj7PGZmVl9XJzwm86AQvcXRzY2dgYGBi27dqrbmwLR8nZxRAF/l6Ecxw+C/xh4bNhy05k8WOnzrx89ZqBgcFQX0dWWgq/BYyjzZZRC0YtoL0FAG6EUHJkbcJxAAAAAElFTkSuQmCC" />
 
-  <!-- schema.org JSON-LD (unverändert) -->
+  <!-- schema.org -->
   <script type="application/ld+json">
   {
-    "@context":"https://schema.org",
-    "@type":"WebSite",
-    "name":"Arondight45",
-    "url":"https://arondight.eu",
-    "author":{"@type":"Person","name":"Christian Hohlfeld"},
-    "publisher":{"@type":"Organization","name":"Christian Hohlfeld","url":"https://arondight.eu"},
-    "description":"Arondight45 is a modular, high-fidelity combat simulation system designed for realism, training, and performance."
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Arondight45",
+    "url": "https://arondight.eu",
+    "author": { "@type": "Person", "name": "Christian Hohlfeld" },
+    "publisher": { "@type": "Organization", "name": "Christian Hohlfeld", "url": "https://arondight.eu" },
+    "description": "Arondight45 is a modular, high-fidelity combat simulation system designed for realism, training, and performance."
   }
   </script>
 </head>
-
-
 <body class="bg-base-100 text-base-content">
-
 <main class="max-w-6xl mx-auto px-6 py-10">
   <!-- ⬆️ Hero -->
   <header class="text-center mb-16">
