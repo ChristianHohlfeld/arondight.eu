@@ -10,20 +10,23 @@
   <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
-  <!-- eigenes Farbschema (business-Preset verfeinert) -->
-  <style>
-    [data-theme="business"]{
-      --p:#1c4e80; --pc:#ffffff;
-      --s:#0ea5e9; --sc:#ffffff;
-      --a:#5b21b6; --ac:#ffffff;
-      --n:#26323c; --nc:#ffffff;
-      --b1:#1e293b; --bc:#ffffff;
-      --in:#0ea5e9; --inc:#ffffff;
-      --su:#10b981;--suc:#ffffff;
-      --wa:#f59e0b;--wac:#ffffff;
-      --er:#ef4444;--erc:#ffffff;
-    }
-  </style>
+<!-- einzig nötiger Theme-Block – alles in v5-Syntax (HSL) -->
+<style>
+  [data-theme="business"]{
+    /* primary (Arondight Blue) */
+    --p : 207 19% 22%;   /* #26323C */
+    --pf: 0   0%  98%;   /* fast weiß, Text-Kontrast */
+
+    /* secondary (optional) */
+    --s : 211 91% 52%;   /* #0ea5e9 */
+    --sf: 0   0% 100%;
+
+    /* accent (optional) */
+    --a : 257 57% 31%;   /* #5b21b6 */
+    --af: 0   0% 100%;
+  }
+</style>
+
 
   <!-- SEO -->
   <meta name="author" content="Christian Hohlfeld" />
