@@ -1261,7 +1261,8 @@
             // Set global trendingAssets to the symbols for the current page
             trendingAssets = symbols.map(sym => ({ symbol: sym, changePct: 0, price: 0 }));
 
-            listEl.innerHTML = `<div class="col-span-2 text-center text-slate-500 text-xs mt-1">Lade Assets...</div>`;
+            // FIX: Ensure loading state preserves min-height layout
+            listEl.innerHTML = `<div class="col-span-2 flex items-center justify-center text-slate-500 text-xs" style="height: 100%;">Lade Assets...</div>`;
             
             const promises = trendingAssets.map(asset => fetchTrendingPrice(asset.symbol));
             const results = await Promise.all(promises);
@@ -1282,7 +1283,7 @@
             if (!list || !prevBtn || !nextBtn || !pageInfo) return;
 
             if (trendingAssets.length === 0) {
-                 list.innerHTML = `<div class="col-span-2 text-center text-gray-600 text-xs italic mt-2">Keine Trending Assets gefunden.</div>`;
+                 list.innerHTML = `<div class="col-span-2 flex items-center justify-center text-gray-600 text-xs italic" style="height: 100%;">Keine Trending Assets gefunden.</div>`;
                  prevBtn.disabled = true;
                  nextBtn.disabled = true;
                  pageInfo.textContent = 'Seite 0/0';
