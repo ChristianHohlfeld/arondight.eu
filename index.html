@@ -462,6 +462,8 @@
                         this.isUnlocked = true;
                         document.getElementById('unmuteButton').classList.add('hidden');
                         this.playImpact('plastic');
+                        // Store the unlocked state
+                        localStorage.setItem('audio_unlocked', 'true'); 
                         console.log("AudioContext resumed and unlocked.");
                     }).catch(e => {
                         console.error("Failed to resume AudioContext:", e);
@@ -470,6 +472,7 @@
                     this.isUnlocked = true;
                     document.getElementById('unmuteButton').classList.add('hidden');
                     this.playImpact('plastic');
+                    localStorage.setItem('audio_unlocked', 'true');
                 }
             },
             playImpact: function(mat) {
@@ -563,12 +566,28 @@
 
         function updateAssetUI() {
             const isCrypto = assetMode === 'CRYPTO';
-            document.getElementById('assetModeLabel').textContent = isCrypto ? 'Krypto' : 'Aktie';
-            document.getElementById('rawShareLabel').textContent = isCrypto ? 'Coin-Wert:' : 'Aktienwert:';
-            document.getElementById('buyFeesLabel').textContent = isCrypto ? 'Krypto-Gebühr:' : 'Kaufgebühren:';
-            document.getElementById('targetKursLabel').textContent = isCrypto ? 'Coin (Ziel):' : 'Kurs (Ziel):';
-            document.getElementById('currentPnLLabel').textContent = isCrypto ? 'Aktuelle Performance (Krypto)' : 'Aktuelle Performance (Aktie)';
-            document.getElementById('searchInput').placeholder = isCrypto ? 'Krypto suchen (z.B. BTC-EUR)' : 'Aktie suchen...';
+            
+            // UI elements for the Asset Mode Toggle (in Header)
+            if (document.getElementById('assetModeLabel')) {
+                document.getElementById('assetModeLabel').textContent = isCrypto ? 'Krypto' : 'Aktie';
+            }
+            
+            // UI elements for the calculation breakdown
+            if (document.getElementById('rawShareLabel')) {
+                document.getElementById('rawShareLabel').textContent = isCrypto ? 'Coin-Wert:' : 'Aktienwert:';
+            }
+            if (document.getElementById('buyFeesLabel')) {
+                document.getElementById('buyFeesLabel').textContent = isCrypto ? 'Krypto-Gebühr:' : 'Kaufgebühren:';
+            }
+            if (document.getElementById('targetKursLabel')) {
+                document.getElementById('targetKursLabel').textContent = isCrypto ? 'Coin (Ziel):' : 'Kurs (Ziel):';
+            }
+            if (document.getElementById('currentPnLLabel')) {
+                document.getElementById('currentPnLLabel').textContent = isCrypto ? 'Aktuelle Performance (Krypto)' : 'Aktuelle Performance (Aktie)';
+            }
+            if (document.getElementById('searchInput')) {
+                document.getElementById('searchInput').placeholder = isCrypto ? 'Krypto suchen (z.B. BTC-EUR)' : 'Aktie suchen...';
+            }
             
             // Check if search symbol is appropriate for the current mode, if not, clear it
             const currentSym = document.getElementById('searchInput').value;
@@ -596,13 +615,20 @@
             const r = localStorage.getItem(KEYS.D);
 
             // 1. Initial Defaults for the UI elements in the result panel (before loading state)
-            // This is crucial to prevent the TypeError if state loading fails or before first calculation.
-            document.getElementById('requiredSellPriceTotal').textContent = '0,00 €';
-            document.getElementById('requiredSellPriceShare').textContent = '0,00 €';
-            document.getElementById('percentChangeTarget').textContent = '+0.00 %';
-            document.getElementById('totalInvested').textContent = '0,00 €';
-            document.getElementById('totalFees').textContent = '0,00 €';
-            document.getElementById('taxAmount').textContent = '0,00 €';
+            // FIX: Explicitly check for existence before setting content, although this should be safe
+            // as 'calculate' below handles default setting too. We do this here for immediate visual update on load.
+            const setSafeText = (id, text) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = text;
+            };
+
+            setSafeText('requiredSellPriceTotal', '0,00 €');
+            setSafeText('requiredSellPriceShare', '0,00 €');
+            setSafeText('percentChangeTarget', '+0.00 %');
+            setSafeText('totalInvested', '0,00 €');
+            setSafeText('totalFees', '0,00 €');
+            setSafeText('taxAmount', '0,00 €');
+            setSafeText('currentPnL', '+0.00 % (0,00 €)');
             
             // 2. Load Defaults if no state is saved
             if(!r) { 
@@ -748,22 +774,29 @@
             const invest = rawValue + buyFee;
             
             // Update Invest Breakdown display
-            document.getElementById('purchaseDateDisplay').textContent = fmtDateTime(purchaseDateIso);
-            document.getElementById('rawShareValue').textContent = fmt(rawValue);
-            document.getElementById('buyFees').textContent = fmt(buyFee);
-            document.getElementById('totalInvested').textContent = fmt(invest);
+            if (document.getElementById('purchaseDateDisplay')) document.getElementById('purchaseDateDisplay').textContent = fmtDateTime(purchaseDateIso);
+            if (document.getElementById('rawShareValue')) document.getElementById('rawShareValue').textContent = fmt(rawValue);
+            if (document.getElementById('buyFees')) document.getElementById('buyFees').textContent = fmt(buyFee);
+            if (document.getElementById('totalInvested')) document.getElementById('totalInvested').textContent = fmt(invest);
 
 
             let netTarget = (profitMode==='EUR') ? slider : (invest * (slider/100));
-            document.getElementById('targetProfitDisplay').textContent = (profitMode==='EUR') ? fmt(netTarget) : `${slider.toFixed(1)} % (${fmt(netTarget)})`;
+            if (document.getElementById('targetProfitDisplay')) document.getElementById('targetProfitDisplay').textContent = (profitMode==='EUR') ? fmt(netTarget) : `${slider.toFixed(1)} % (${fmt(netTarget)})`;
+            
+            
             if(bp<=0 || qty<=0) { 
-                document.getElementById('requiredSellPriceTotal').textContent = fmt(0);
-                document.getElementById('requiredSellPriceShare').textContent = fmt(0);
-                document.getElementById('percentChangeTarget').textContent = '+0.00 %';
-                document.getElementById('totalFees').textContent = fmt(0);
-                document.getElementById('taxAmount').textContent = fmt(0);
-                document.getElementById('currentPnL').textContent = '+0.00 % (0,00 €)';
-                document.getElementById('currentPnL').className = 'text-[11px] font-bold px-2 py-0.5 rounded text-slate-400 bg-slate-700/50 border border-slate-700';
+                // FIX: Added null check here just in case, though the safe texts above should cover it.
+                if (document.getElementById('requiredSellPriceTotal')) document.getElementById('requiredSellPriceTotal').textContent = fmt(0);
+                if (document.getElementById('requiredSellPriceShare')) document.getElementById('requiredSellPriceShare').textContent = fmt(0);
+                if (document.getElementById('percentChangeTarget')) document.getElementById('percentChangeTarget').textContent = '+0.00 %';
+                if (document.getElementById('totalFees')) document.getElementById('totalFees').textContent = fmt(0);
+                if (document.getElementById('taxAmount')) document.getElementById('taxAmount').textContent = fmt(0);
+                
+                const currentPnLEl = document.getElementById('currentPnL');
+                if (currentPnLEl) {
+                    currentPnLEl.textContent = '+0.00 % (0,00 €)';
+                    currentPnLEl.className = 'text-[11px] font-bold px-2 py-0.5 rounded text-slate-400 bg-slate-700/50 border border-slate-700';
+                }
                 renderCanvas(); 
                 return; 
             }
@@ -791,13 +824,16 @@
             
             // Target Result Display
             const el = document.getElementById('requiredSellPriceTotal');
-            if(Math.abs(sellVol - prevRes) > 0.01) { el.classList.remove('pulse-text'); void el.offsetWidth; el.classList.add('pulse-text'); prevRes = sellVol; }
-            el.textContent = fmt(sellVol);
-            document.getElementById('requiredSellPriceShare').textContent = fmt(reqPrice);
-            document.getElementById('percentChangeTarget').textContent = `${pctTarget >= 0 ? '+' : ''}${pctTarget.toFixed(2)} %`;
+            if(el) {
+                if(Math.abs(sellVol - prevRes) > 0.01) { el.classList.remove('pulse-text'); void el.offsetWidth; el.classList.add('pulse-text'); prevRes = sellVol; }
+                el.textContent = fmt(sellVol);
+            }
             
-            document.getElementById('totalFees').textContent = fmt(buyFee + sellFee); 
-            document.getElementById('taxAmount').textContent = fmt(taxVal);
+            if (document.getElementById('requiredSellPriceShare')) document.getElementById('requiredSellPriceShare').textContent = fmt(reqPrice);
+            if (document.getElementById('percentChangeTarget')) document.getElementById('percentChangeTarget').textContent = `${pctTarget >= 0 ? '+' : ''}${pctTarget.toFixed(2)} %`;
+            
+            if (document.getElementById('totalFees')) document.getElementById('totalFees').textContent = fmt(buyFee + sellFee); 
+            if (document.getElementById('taxAmount')) document.getElementById('taxAmount').textContent = fmt(taxVal);
             
             // --- CURRENT P&L CALCULATION (Uses Daily Price) ---
             const currentSaleVol = (dp * qty); 
@@ -812,11 +848,13 @@
             const currentPct = (dp > 0 && bp > 0) ? ((dp - bp) / bp) * 100 : 0;
 
             const currentPnLEl = document.getElementById('currentPnL');
-            const colorClass = currentNetProfit >= 0 ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10' : 'text-red-400 border-red-500/20 bg-red-500/10';
-            const sign = currentNetProfit >= 0 ? '+' : '';
+            if (currentPnLEl) {
+                const colorClass = currentNetProfit >= 0 ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10' : 'text-red-400 border-red-500/20 bg-red-500/10';
+                const sign = currentNetProfit >= 0 ? '+' : '';
 
-            currentPnLEl.className = `text-[11px] font-bold px-2 py-0.5 rounded ${colorClass} border`;
-            currentPnLEl.textContent = `${sign}${currentPct.toFixed(2)} % (${fmt(currentNetProfit)})`;
+                currentPnLEl.className = `text-[11px] font-bold px-2 py-0.5 rounded ${colorClass} border`;
+                currentPnLEl.textContent = `${sign}${currentPct.toFixed(2)} % (${fmt(currentNetProfit)})`;
+            }
 
             renderCanvas(); // State-driven render
         }
@@ -1014,7 +1052,12 @@
             const bp = parseFloat(document.getElementById('buyPrice').value) || 0;
             const dp = parseFloat(document.getElementById('dailyPrice').value) || 0;
             const q = parseFloat(document.getElementById('quantity').value) || 1;
-            const tpTotal = parseFloat(document.getElementById('requiredSellPriceTotal').innerText.replace('.','').replace(',','.').replace(' €','')) || 0;
+            
+            // FIX: Use safe retrieval of innerText which is formatted currency string
+            const requiredSellPriceTotalEl = document.getElementById('requiredSellPriceTotal');
+            const tpTotalText = requiredSellPriceTotalEl ? requiredSellPriceTotalEl.innerText : '0,00 €';
+            const tpTotal = parseFloat(tpTotalText.replace('.','').replace(',','.').replace(' €','')) || 0;
+            
             const tp = tpTotal / (q > 0 ? q : 1);
 
             // Dynamic Range
