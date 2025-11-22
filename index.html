@@ -663,7 +663,7 @@
             loadState(false); // Load state for the new mode, do not save current state again
             
             // Re-run dependencies for the new mode
-            toggleDailyPriceEdit();
+            // NOTE: toggleDailyPriceEdit is handled inside loadState/fetchPrice.
             renderTrades(); 
             updateRecentsUI();
             fetchTrendingAssets(); 
@@ -703,7 +703,8 @@
             // Set current time for date picker on load
             if (initialLoad) {
                 const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-                document.getElementById('purchaseDate').value = now.toISOString().slice(0,16);
+                const purchaseDateEl = document.getElementById('purchaseDate');
+                if(purchaseDateEl) purchaseDateEl.value = now.toISOString().slice(0,16);
             }
 
             // Reset inputs to default before loading saved state
@@ -781,18 +782,21 @@
             const dailyPriceInput = document.getElementById('dailyPrice');
             const dailyPriceContainer = document.getElementById('dailyPriceContainer');
             
-            // Tageskurs ist deaktiviert, wenn ein Symbol vorhanden ist
-            const isDisabled = searchInput && searchInput !== 'Manuell';
+            // Tageskurs ist NICHT editierbar, wenn ein Symbol vorhanden ist (Muss vom Markt kommen)
+            const isDisabled = searchInput && searchInput !== 'Manuell' && dailyPriceInput;
 
-            dailyPriceInput.disabled = isDisabled;
-            dailyPriceContainer.classList.toggle('opacity-50', isDisabled);
-            dailyPriceContainer.classList.toggle('pointer-events-none', isDisabled);
-            
-            // Wenn aktiviert, entfernen wir die Hover-Effekte vom Container, da er nicht interaktiv sein soll
-            if (isDisabled) {
-                dailyPriceContainer.classList.remove('hover:border-white/10');
-            } else {
-                dailyPriceContainer.classList.add('hover:border-white/10');
+            if (dailyPriceInput) {
+                dailyPriceInput.disabled = isDisabled;
+            }
+            if (dailyPriceContainer) {
+                dailyPriceContainer.classList.toggle('opacity-50', isDisabled);
+                dailyPriceContainer.classList.toggle('pointer-events-none', isDisabled);
+                
+                if (isDisabled) {
+                    dailyPriceContainer.classList.remove('hover:border-white/10');
+                } else {
+                    dailyPriceContainer.classList.add('hover:border-white/10');
+                }
             }
         };
 
@@ -1257,7 +1261,7 @@
                     AudioEngine.playSuccess(); 
                     document.getElementById('dailyPrice').value=p.toFixed(2);
                     addToRecents(s); 
-                    toggleDailyPriceEdit();
+                    toggleDailyPriceEdit(); // Jetzt deaktiviert es, da Symbol gesetzt ist
                     saveAndCalc();
                     renderTrades();
                 } else {
