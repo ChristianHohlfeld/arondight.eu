@@ -557,8 +557,13 @@
         document.addEventListener('keydown', (e) => { if(e.code==='Space' && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) { e.preventDefault(); toggleFlip(); } });
 
         // === 3. APP STATE & CONFIG ===
-        // KEYS for Local Storage: C=Consent, U=User, D=Data, T=Trades, H=History
-        const KEYS = { C:'ing_cons', U:'ing_user', D:'ing_data', T:'ing_trade', H:'ing_history' };
+        // KEYS for Local Storage: U=User, C=Consent, D_x=Data, T_x=Trades, H_x=History
+        const KEYS = { 
+            C:'ing_cons', U:'ing_user', 
+            D_STOCKS: 'ing_data_stocks', D_CRYPTO: 'ing_data_crypto',
+            T_STOCKS: 'ing_trade_stocks', T_CRYPTO: 'ing_trade_crypto',
+            H_STOCKS: 'ing_history_stocks', H_CRYPTO: 'ing_history_crypto'
+        };
         
         let profitMode = 'EUR';
         let assetMode = 'STOCKS'; // NEW: Default mode is STOCKS
@@ -580,7 +585,23 @@
             else { showModal('consent', 'Datenschutz', 'Wir speichern Daten lokal.', [{label:'Akzeptieren', cls:'btn-action btn-primary', cb:()=>window.decideConsent(true)}, {label:'Ablehnen', cls:'btn-action btn-secondary', cb:()=>window.decideConsent(false)}]); }
         };
         window.decideConsent = function(a) { localStorage.setItem(KEYS.C, a?'true':'false'); if(a) { AudioEngine.playImpact('plastic'); window.initConsent(); } else { location.reload(); } };
-        window.askReset = function() { showModal('warn', 'Löschen?', 'Alle Daten löschen?', [{label:'Löschen', cls:'btn-action btn-danger', cb:()=>{localStorage.clear();location.reload();}}, {label:'Abbrechen', cls:'btn-action btn-secondary'}]); };
+        
+        window.askReset = function() { 
+            showModal('warn', 'Löschen?', 'Alle Daten löschen?', [{
+                label:'Löschen', cls:'btn-action btn-danger', 
+                cb:()=>{ 
+                    localStorage.removeItem(KEYS.U);
+                    localStorage.removeItem(KEYS.D_STOCKS);
+                    localStorage.removeItem(KEYS.D_CRYPTO);
+                    localStorage.removeItem(KEYS.T_STOCKS);
+                    localStorage.removeItem(KEYS.T_CRYPTO);
+                    localStorage.removeItem(KEYS.H_STOCKS);
+                    localStorage.removeItem(KEYS.H_CRYPTO);
+                    location.reload(); 
+                }}, 
+                {label:'Abbrechen', cls:'btn-action btn-secondary'}
+            ]); 
+        };
 
         function checkLogin() {
             const u = localStorage.getItem(KEYS.U);
@@ -622,32 +643,49 @@
 
             // Check if search symbol is appropriate for the current mode, if not, clear it
             const currentSym = document.getElementById('searchInput').value;
-            if (currentSym && (isCrypto && !currentSym.includes('-')) || (!isCrypto && currentSym.includes('-'))) {
+            // Clears search input if the symbol format doesn't match the current mode (e.g., stock symbol in crypto mode)
+            if (currentSym && (isCrypto && !isCryptoSymbol(currentSym)) || (!isCrypto && isCryptoSymbol(currentSym))) {
                  document.getElementById('searchInput').value = '';
             }
         }
         
         window.toggleAssetMode = function() {
+            // 1. Save the state of the CURRENT mode before switching
+            saveState();
+
+            // 2. Switch the mode
             const chk = document.getElementById('assetModeToggle');
             assetMode = chk.checked ? 'CRYPTO' : 'STOCKS';
-            updateAssetUI();
             
-            // Re-run the core functions to update labels, fees, etc.
+            // 3. Update UI and load the NEW mode's state
+            updateAssetUI();
+            loadState(false); // Load state for the new mode, do not save current state again
+            
+            // Re-run dependencies for the new mode
             toggleDailyPriceEdit();
-            saveAndCalc();
-            renderTrades(); // Recalculate P&L with new fee structure
-            updateRecentsUI(); // FIX: Update recent searches display
-            saveState(); // Save the new mode
-            fetchTrendingAssets(); // Fetch new trending list for the new mode
+            renderTrades(); 
+            updateRecentsUI();
+            fetchTrendingAssets(); 
         }
 
-        function loadState() {
-            const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            document.getElementById('purchaseDate').value = now.toISOString().slice(0,16);
-            
-            const r = localStorage.getItem(KEYS.D);
+        function getCurrentDataKey() {
+            return assetMode === 'STOCKS' ? KEYS.D_STOCKS : KEYS.D_CRYPTO;
+        }
 
-            // 1. Initial Defaults for the UI elements in the result panel (before loading state)
+        function getCurrentHistoryKey() {
+             return assetMode === 'STOCKS' ? KEYS.T_STOCKS : KEYS.T_CRYPTO;
+        }
+
+        function getCurrentRecentsKey() {
+             return assetMode === 'STOCKS' ? KEYS.H_STOCKS : KEYS.H_CRYPTO;
+        }
+
+
+        function loadState(initialLoad = true) {
+            const currentKey = getCurrentDataKey();
+            const r = localStorage.getItem(currentKey);
+            
+            // Set safe/default texts for all display elements before potentially loading old values
             const setSafeText = (id, text) => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = text;
@@ -661,66 +699,78 @@
             setSafeText('taxAmount', '0,00 €');
             setSafeText('currentPnL', '+0.00 % (0,00 €)');
             
-            // 2. Load Defaults if no state is saved
+            // Set current time for date picker on load
+            if (initialLoad) {
+                const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                document.getElementById('purchaseDate').value = now.toISOString().slice(0,16);
+            }
+
+            // Reset inputs to default before loading saved state
+            document.getElementById('buyPrice').value = "0.00";
+            document.getElementById('dailyPrice').value = "0.00";
+            document.getElementById('quantity').value = "0";
+            document.getElementById('searchInput').value = "";
+            document.getElementById('profitSlider').value = "0";
+            document.getElementById('taxToggle').checked = false;
+            document.getElementById('profitModeToggle').checked = false;
+            profitMode = 'EUR';
+
+            // Load saved state for the current mode
             if(!r) { 
                 document.getElementById('dailyPrice').value = document.getElementById('buyPrice').value;
                 toggleDailyPriceEdit();
-                updateAssetUI(); // Initialize UI labels
+                updateAssetUI();
                 calculate(); 
                 fetchTrendingAssets();
                 return; 
             }
 
-            // 3. Load State
             try {
                 const d = JSON.parse(r);
-                if(d.am) { // Load Asset Mode first
-                    assetMode = d.am;
-                    document.getElementById('assetModeToggle').checked = (assetMode === 'CRYPTO');
-                }
-                updateAssetUI(); // Update UI based on loaded mode
                 
+                // Note: assetMode, assetModeToggle, and profitMode are already set/updated by toggleAssetMode/updateAssetUI if coming from a switch
+
                 if(d.bp) document.getElementById('buyPrice').value = d.bp;
                 if(d.dp) document.getElementById('dailyPrice').value = d.dp; 
                 else document.getElementById('dailyPrice').value = document.getElementById('buyPrice').value;
                 
                 if(d.qty) document.getElementById('quantity').value = d.qty;
                 
-                // If a symbol is present, fetch the latest price into the Daily Price field
-                if(d.sym) { 
-                    document.getElementById('searchInput').value = d.sym; 
-                    // fetchPrice updates dailyPrice, not buyPrice
-                    fetchPrice(d.sym); 
-                }
-                
+                // Restore remaining controls
+                if(d.sym) document.getElementById('searchInput').value = d.sym; 
                 if(d.ps) document.getElementById('profitSlider').value = d.ps;
                 if(d.tt!==undefined) { document.getElementById('taxToggle').checked = d.tt; handleToggle(false); }
                 if(d.pm) { document.getElementById('profitModeToggle').checked = (d.pm==='PERCENT'); toggleProfitMode(false); }
                 
                 toggleDailyPriceEdit();
                 
-                // 4. Final Calculation after loading all values
-                // If fetchPrice is not called (i.e. d.sym is empty or null), calculate here
-                if (!d.sym) calculate();
+                // If a symbol is present, fetch the latest price and calculate
+                if(d.sym) { 
+                    fetchPrice(d.sym); 
+                } else {
+                    calculate();
+                }
 
-                fetchTrendingAssets(); // Initial fetch for trending data
+                fetchTrendingAssets();
 
             } catch(e) { console.error("Error loading state:", e); }
         }
 
         window.saveState = function() {
             if(localStorage.getItem(KEYS.C)!=='true') return;
+            const currentKey = getCurrentDataKey();
+
             const d = {
                 bp: document.getElementById('buyPrice').value,
-                dp: document.getElementById('dailyPrice').value, // Save daily price
+                dp: document.getElementById('dailyPrice').value,
                 qty: document.getElementById('quantity').value,
                 ps: document.getElementById('profitSlider').value, 
                 tt: document.getElementById('taxToggle').checked,
                 sym: document.getElementById('searchInput').value,
                 pm: document.getElementById('profitModeToggle').checked ? 'PERCENT' : 'EUR',
-                am: assetMode // NEW: Save Asset Mode
+                am: assetMode 
             };
-            localStorage.setItem(KEYS.D, JSON.stringify(d));
+            localStorage.setItem(currentKey, JSON.stringify(d));
         }
         window.saveAndCalc = function() { calculate(); saveState(); };
         
@@ -795,12 +845,25 @@
         }
 
         function calculate() {
-            const bp = parseFloat(document.getElementById('buyPrice').value)||0; 
-            const dp = parseFloat(document.getElementById('dailyPrice').value)||0; 
-            const qty = parseFloat(document.getElementById('quantity').value)||0;
-            const slider = parseFloat(document.getElementById('profitSlider').value)||0;
-            const useTax = document.getElementById('taxToggle').checked;
-            const purchaseDateIso = document.getElementById('purchaseDate').value;
+            // FIX: Ensure all elements are retrieved safely before reading values
+            const buyPriceEl = document.getElementById('buyPrice');
+            const dailyPriceEl = document.getElementById('dailyPrice');
+            const quantityEl = document.getElementById('quantity');
+            const profitSliderEl = document.getElementById('profitSlider');
+            const taxToggleEl = document.getElementById('taxToggle');
+            const purchaseDateEl = document.getElementById('purchaseDate');
+
+            if (!buyPriceEl || !dailyPriceEl || !quantityEl || !profitSliderEl || !taxToggleEl || !purchaseDateEl) {
+                console.error("Critical calculation elements missing.");
+                return; 
+            }
+
+            const bp = parseFloat(buyPriceEl.value)||0; 
+            const dp = parseFloat(dailyPriceEl.value)||0; 
+            const qty = parseFloat(quantityEl.value)||0;
+            const slider = parseFloat(profitSliderEl.value)||0;
+            const useTax = taxToggleEl.checked;
+            const purchaseDateIso = purchaseDateEl.value;
             
             // --- CORE TARGET CALCULATION (Uses Buy Price / Invest) ---
             const rawValue = bp * qty; 
@@ -930,6 +993,8 @@
 
         window.saveTrade = function() {
             if(localStorage.getItem(KEYS.C)!=='true') return;
+            const historyKey = getCurrentHistoryKey();
+
             const t = { 
                 id: Date.now(), 
                 sym: document.getElementById('searchInput').value || "Manuell", 
@@ -939,12 +1004,15 @@
                 bp: document.getElementById('buyPrice').value, 
                 am: assetMode // NEW: Save Asset Mode with the trade
             };
-            const l = JSON.parse(localStorage.getItem(KEYS.T)||'[]'); l.unshift(t);
-            localStorage.setItem(KEYS.T, JSON.stringify(l)); AudioEngine.playSuccess(); showToast("Trade gesichert"); renderTrades();
+            // FIX: Append to the correct history list
+            const l = JSON.parse(localStorage.getItem(historyKey)||'[]'); l.unshift(t);
+            localStorage.setItem(historyKey, JSON.stringify(l)); AudioEngine.playSuccess(); showToast("Trade gesichert"); renderTrades();
         };
 
         function renderTrades() {
-            const trades = JSON.parse(localStorage.getItem(KEYS.T)||'[]');
+            const historyKey = getCurrentHistoryKey();
+            // FIX: Load only the current mode's trades
+            const trades = JSON.parse(localStorage.getItem(historyKey)||'[]');
             const el = document.getElementById('trades-list');
             const currentDailyPrice = parseFloat(document.getElementById('dailyPrice').value) || 0;
             const includeTax = document.getElementById('taxHistoryToggle').checked;
@@ -993,34 +1061,45 @@
                 `;
             }).join('');
         }
-        window.delTrade = function(id) { showModal('warn', 'Löschen?', 'Entfernen?', [{label:'Löschen', cls:'btn-action btn-danger', cb:()=>{ let l=JSON.parse(localStorage.getItem(KEYS.T)||'[]'); l=l.filter(x=>x.id!==id); localStorage.setItem(KEYS.T,JSON.stringify(l)); renderTrades(); }}, {label:'Abbrechen', cls:'btn-action btn-secondary'}]); };
+        window.delTrade = function(id) { 
+            showModal('warn', 'Löschen?', 'Entfernen?', [{
+                label:'Löschen', cls:'btn-action btn-danger', 
+                cb:()=>{ 
+                    const historyKey = getCurrentHistoryKey();
+                    let l=JSON.parse(localStorage.getItem(historyKey)||'[]'); 
+                    l=l.filter(x=>x.id!==id); 
+                    localStorage.setItem(historyKey,JSON.stringify(l)); 
+                    renderTrades(); 
+                }}, 
+                {label:'Abbrechen', cls:'btn-action btn-secondary'}
+            ]); 
+        };
 
         // FIX: Filtering in updateRecentsUI() applied
         function isCryptoSymbol(sym) {
-            return sym.includes('-') || sym.length > 5; // Simple heuristic: Crypto often uses 'BTC-USD' format or longer contract names
+            // Updated heuristic: Crypto symbols often contain '-' and are not common 1-5 letter stock symbols
+            return sym.includes('-') || sym.length > 5; 
         }
         
         function addToRecents(sym) {
-            let h = JSON.parse(localStorage.getItem(KEYS.H)||'[]');
-            // Store symbol with mode context for later filtering
-            if (assetMode === 'CRYPTO') {
-                if (!isCryptoSymbol(sym)) return; // Only save if it looks like a crypto/contract
-            } else {
-                 if (isCryptoSymbol(sym)) return; // Only save if it looks like a stock
+            const recentsKey = getCurrentRecentsKey();
+            let h = JSON.parse(localStorage.getItem(recentsKey)||'[]');
+            
+            // This basic validation prevents mixing, though more precise filtering happens on render/load
+            const isTargetCrypto = assetMode === 'CRYPTO';
+            if ((isTargetCrypto && !isCryptoSymbol(sym)) || (!isTargetCrypto && isCryptoSymbol(sym))) {
+                 return; 
             }
             
             h = h.filter(i => i !== sym); h.unshift(sym);
             if(h.length > 3) h.pop();
-            localStorage.setItem(KEYS.H, JSON.stringify(h));
+            localStorage.setItem(recentsKey, JSON.stringify(h));
             updateRecentsUI();
         }
         function updateRecentsUI() {
-            const allRecents = JSON.parse(localStorage.getItem(KEYS.H)||'[]');
-            
-            const filteredRecents = allRecents.filter(sym => {
-                const isCrypto = isCryptoSymbol(sym);
-                return (assetMode === 'CRYPTO' && isCrypto) || (assetMode === 'STOCKS' && !isCrypto);
-            });
+            const recentsKey = getCurrentRecentsKey();
+            // FIX: Load only the current mode's recents
+            const filteredRecents = JSON.parse(localStorage.getItem(recentsKey)||'[]');
 
             const c = document.getElementById('recent-searches');
             c.innerHTML = filteredRecents.map(s => `<span class="stock-badge" onclick="fetchPrice('${s}')">${s}</span>`).join('');
@@ -1279,14 +1358,43 @@
 
         // Export/Import
         window.exportData = function() {
-            const d = { u:localStorage.getItem(KEYS.U), s:JSON.parse(localStorage.getItem(KEYS.D)), t:JSON.parse(localStorage.getItem(KEYS.T)) };
+            // FIX: Export all relevant keys
+            const d = { 
+                u: localStorage.getItem(KEYS.U), 
+                c: localStorage.getItem(KEYS.C),
+                d_stocks: JSON.parse(localStorage.getItem(KEYS.D_STOCKS) || 'null'),
+                d_crypto: JSON.parse(localStorage.getItem(KEYS.D_CRYPTO) || 'null'),
+                t_stocks: JSON.parse(localStorage.getItem(KEYS.T_STOCKS) || 'null'),
+                t_crypto: JSON.parse(localStorage.getItem(KEYS.T_CRYPTO) || 'null'),
+                h_stocks: JSON.parse(localStorage.getItem(KEYS.H_STOCKS) || 'null'),
+                h_crypto: JSON.parse(localStorage.getItem(KEYS.H_CRYPTO) || 'null')
+            };
             const a = document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(d)],{type:'application/json'}));
             a.download=`TradePilot_Backup_${new Date().toISOString().slice(0, 10)}.json`; a.click();
             showToast("Daten gespeichert");
         }
         window.importData = function(i) {
             const f=i.files[0]; if(!f)return; const r=new FileReader();
-            r.onload=e=>{ try{ const d=JSON.parse(e.target.result); if(d.u)localStorage.setItem(KEYS.U,d.u); if(d.s)localStorage.setItem(KEYS.D,JSON.stringify(d.s)); if(d.t)localStorage.setItem(KEYS.T,JSON.stringify(d.t)); location.reload(); }catch(x){ showToast("Fehler beim Importieren der Daten"); }}; r.readAsText(f);
+            r.onload=e=>{ 
+                try{ 
+                    const d=JSON.parse(e.target.result); 
+                    // FIX: Import all relevant keys
+                    if(d.u)localStorage.setItem(KEYS.U,d.u); 
+                    if(d.c)localStorage.setItem(KEYS.C,d.c);
+                    
+                    if(d.d_stocks)localStorage.setItem(KEYS.D_STOCKS,JSON.stringify(d.d_stocks));
+                    if(d.d_crypto)localStorage.setItem(KEYS.D_CRYPTO,JSON.stringify(d.d_crypto));
+                    
+                    if(d.t_stocks)localStorage.setItem(KEYS.T_STOCKS,JSON.stringify(d.t_stocks));
+                    if(d.t_crypto)localStorage.setItem(KEYS.T_CRYPTO,JSON.stringify(d.t_crypto));
+                    
+                    if(d.h_stocks)localStorage.setItem(KEYS.H_STOCKS,JSON.stringify(d.h_stocks));
+                    if(d.h_crypto)localStorage.setItem(KEYS.H_CRYPTO,JSON.stringify(d.h_crypto));
+                    
+                    location.reload(); 
+                }catch(x){ showToast("Fehler beim Importieren der Daten"); }
+            }; 
+            r.readAsText(f);
         }
         function showToast(msg) {
             const c = document.getElementById('toast-container');
@@ -1324,6 +1432,18 @@
                 document.getElementById('unmuteButton').classList.add('hidden');
             }
 
+            // Load Asset Mode on startup
+            const savedState = localStorage.getItem(getCurrentDataKey());
+            if (savedState) {
+                try {
+                    const d = JSON.parse(savedState);
+                    if (d.am) {
+                         assetMode = d.am;
+                         document.getElementById('assetModeToggle').checked = (assetMode === 'CRYPTO');
+                    }
+                } catch(e) { /* ignore */ }
+            }
+            updateAssetUI(); // Ensure UI reflects the loaded/default mode immediately
             window.initConsent();
         });
     </script>
