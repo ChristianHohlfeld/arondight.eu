@@ -20,7 +20,7 @@
         /* --- 3D CARD ENGINE --- */
         .scene { 
             perspective: 1200px; z-index: 20; position: relative; 
-            width: 100%; max-width: 420px; height: 85vh; max-height: 780px; min-height: 480px;
+            width: 100%; max-width: 420px; height: 85vh; max-height: 780px; min-height: 600px;
         }
         .card {
             position: relative; width: 100%; height: 100%;
@@ -291,6 +291,17 @@
                     <!-- Settings Box -->
                     <div class="bg-slate-800/30 p-4 rounded-2xl border border-white/5">
                         <div class="flex justify-between items-center mb-4">
+                            
+                            <!-- Asset Mode Toggle (STOCK / CRYPTO) -->
+                            <label class="flex items-center cursor-pointer gap-2 select-none group interactive" onclick="AudioEngine.playImpact('plastic')">
+                                <div class="relative w-9 h-5">
+                                    <input type="checkbox" id="assetModeToggle" class="peer sr-only" onchange="toggleAssetMode()">
+                                    <div class="w-full h-full bg-slate-600 rounded-full shadow-inner peer-checked:bg-emerald-500 transition-colors duration-200"></div>
+                                    <div class="absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full shadow transition-transform duration-200 peer-checked:translate-x-[1rem]"></div>
+                                </div>
+                                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-slate-300 transition-colors" id="assetModeLabel">Aktie</span>
+                            </label>
+
                             <!-- Tax Toggle -->
                             <label class="flex items-center cursor-pointer gap-2 select-none group interactive" onclick="AudioEngine.playImpact('plastic')">
                                 <div class="relative w-9 h-5">
@@ -300,7 +311,13 @@
                                 </div>
                                 <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-slate-300 transition-colors">Steuer</span>
                             </label>
-
+                            
+                        </div>
+                        
+                        <div class="flex justify-between items-center mb-4">
+                             <!-- Spacer (to align Profit Mode) -->
+                            <div class="w-9 h-5"></div>
+                            
                             <!-- Profit Mode Toggle -->
                             <label class="flex items-center cursor-pointer gap-2 select-none group interactive" onclick="AudioEngine.playImpact('plastic')">
                                 <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-slate-300 transition-colors" id="profitModeLabel">Gewinn in €</span>
@@ -311,6 +328,7 @@
                                 </div>
                             </label>
                         </div>
+
 
                         <div class="flex justify-between items-end mb-2">
                             <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Ziel</label>
@@ -329,9 +347,9 @@
                             <div class="grid grid-cols-2 gap-1 text-xs font-mono text-slate-400">
                                 <span class="text-slate-500">Kaufdatum:</span>
                                 <span class="text-right text-slate-300" id="purchaseDateDisplay">01.01.2025</span>
-                                <span class="text-slate-500">Aktienwert:</span>
+                                <span class="text-slate-500" id="rawShareLabel">Aktienwert:</span>
                                 <span class="text-right text-slate-300" id="rawShareValue">0,00 €</span>
-                                <span class="text-slate-500">Kaufgebühren:</span>
+                                <span class="text-slate-500" id="buyFeesLabel">Kaufgebühren:</span>
                                 <span class="text-right text-slate-300" id="buyFees">0,00 €</span>
                             </div>
                             <div class="flex justify-end mt-2 pt-2 border-t border-slate-700/50">
@@ -352,14 +370,14 @@
                                 </div>
                             </div>
                             <div class="border-t border-slate-700/50 mt-3 pt-3 flex justify-between items-center">
-                                <span class="text-[11px] text-slate-400">Kurs (Ziel): <span id="requiredSellPriceShare" class="text-white font-mono font-bold">306,06&nbsp;€</span></span>
+                                <span class="text-[11px] text-slate-400" id="targetKursLabel">Kurs (Ziel): <span id="requiredSellPriceShare" class="text-white font-mono font-bold">306,06&nbsp;€</span></span>
                                 <span id="percentChangeTarget" class="text-[11px] font-bold bg-slate-700/50 px-2 py-0.5 rounded text-emerald-400 border border-emerald-500/20">+2.14 %</span>
                             </div>
                         </div>
 
                         <!-- Current P&L -->
                         <div class="bg-slate-900/40 p-5 pt-3 border-t border-slate-700/50 flex justify-between items-center">
-                            <span class="text-[11px] text-slate-400 uppercase tracking-wide">Aktuelle Performance (Netto)</span>
+                            <span class="text-[11px] text-slate-400 uppercase tracking-wide" id="currentPnLLabel">Aktuelle Performance (Aktie)</span>
                             <span id="currentPnL" class="text-[11px] font-bold px-2 py-0.5 rounded text-slate-400 bg-slate-700/50 border border-slate-700">+0.00 % (0,00 €)</span>
                         </div>
                     </div>
@@ -475,8 +493,11 @@
         document.addEventListener('keydown', (e) => { if(e.code==='Space' && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) { e.preventDefault(); toggleFlip(); } });
 
         // === 3. APP STATE & CONFIG ===
+        // KEYS for Local Storage: C=Consent, U=User, D=Data, T=Trades, H=History
         const KEYS = { C:'ing_cons', U:'ing_user', D:'ing_data', T:'ing_trade', H:'ing_history' };
+        
         let profitMode = 'EUR';
+        let assetMode = 'STOCKS'; // NEW: Default mode is STOCKS
         let chartData = null;
 
         function toggleFlip() { AudioEngine.playSwoosh(); document.getElementById('main-card').classList.toggle('is-flipped'); }
@@ -502,6 +523,34 @@
         window.performLogin = function() { localStorage.setItem(KEYS.U, document.getElementById('username-input').value.trim()||"Anonym"); AudioEngine.playSuccess(); checkLogin(); };
         window.logout = function() { localStorage.removeItem(KEYS.U); location.reload(); };
 
+        function updateAssetUI() {
+            const isCrypto = assetMode === 'CRYPTO';
+            document.getElementById('assetModeLabel').textContent = isCrypto ? 'Krypto' : 'Aktie';
+            document.getElementById('rawShareLabel').textContent = isCrypto ? 'Coin-Wert:' : 'Aktienwert:';
+            document.getElementById('buyFeesLabel').textContent = isCrypto ? 'Krypto-Gebühr:' : 'Kaufgebühren:';
+            document.getElementById('targetKursLabel').textContent = isCrypto ? 'Coin (Ziel):' : 'Kurs (Ziel):';
+            document.getElementById('currentPnLLabel').textContent = isCrypto ? 'Aktuelle Performance (Krypto)' : 'Aktuelle Performance (Aktie)';
+            document.getElementById('searchInput').placeholder = isCrypto ? 'Krypto suchen (z.B. BTC-EUR)' : 'Aktie suchen...';
+            
+            // Check if search symbol is appropriate for the current mode, if not, clear it
+            const currentSym = document.getElementById('searchInput').value;
+            if (currentSym && (isCrypto && !currentSym.includes('-')) || (!isCrypto && currentSym.includes('-'))) {
+                 document.getElementById('searchInput').value = '';
+            }
+        }
+        
+        window.toggleAssetMode = function() {
+            const chk = document.getElementById('assetModeToggle');
+            assetMode = chk.checked ? 'CRYPTO' : 'STOCKS';
+            updateAssetUI();
+            
+            // Re-run the core functions to update labels, fees, etc.
+            toggleDailyPriceEdit();
+            saveAndCalc();
+            renderTrades(); // Recalculate P&L with new fee structure
+            saveState(); // Save the new mode
+        }
+
         function loadState() {
             const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             document.getElementById('purchaseDate').value = now.toISOString().slice(0,16);
@@ -513,14 +562,21 @@
                 document.getElementById('dailyPrice').value = document.getElementById('buyPrice').value;
                 toggleDailyPriceEdit();
                 calculate(); 
+                updateAssetUI(); // Initialize UI labels
                 return; 
             }
 
             try {
                 const d = JSON.parse(r);
+                if(d.am) { // Load Asset Mode first
+                    assetMode = d.am;
+                    document.getElementById('assetModeToggle').checked = (assetMode === 'CRYPTO');
+                }
+                updateAssetUI(); // Update UI based on loaded mode
+                
                 if(d.bp) document.getElementById('buyPrice').value = d.bp;
-                if(d.dp) document.getElementById('dailyPrice').value = d.dp; // Load Daily Price
-                else document.getElementById('dailyPrice').value = document.getElementById('buyPrice').value; // Fallback for old state
+                if(d.dp) document.getElementById('dailyPrice').value = d.dp; 
+                else document.getElementById('dailyPrice').value = document.getElementById('buyPrice').value;
                 
                 if(d.qty) document.getElementById('quantity').value = d.qty;
                 
@@ -551,7 +607,8 @@
                 ps: document.getElementById('profitSlider').value, 
                 tt: document.getElementById('taxToggle').checked,
                 sym: document.getElementById('searchInput').value,
-                pm: document.getElementById('profitModeToggle').checked ? 'PERCENT' : 'EUR'
+                pm: document.getElementById('profitModeToggle').checked ? 'PERCENT' : 'EUR',
+                am: assetMode // NEW: Save Asset Mode
             };
             localStorage.setItem(KEYS.D, JSON.stringify(d));
         }
@@ -580,22 +637,29 @@
 
         // === LOGIC ===
         const fmt = (n) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(n);
-        // Function to format date and time to DE standard (DD.MM.YYYY HH:MM)
         const fmtDateTime = (isoString) => {
             if (!isoString) return 'Unbekannt';
             try {
                 const date = new Date(isoString);
-                // Extract date part (DD.MM.YYYY)
                 const datePart = date.toLocaleDateString('de-DE');
-                // Extract time part (HH:MM)
                 const timePart = date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
                 return `${datePart} ${timePart}`;
             } catch (e) {
                 return 'Fehler';
             }
         };
-
-        const calcFee = (v) => { let f = 4.90 + (v*0.0025); return f>69.90?69.90:f; };
+        
+        // NEW: Dynamic Fee Calculation based on Asset Mode
+        const calcFee = (v, mode = assetMode) => {
+            if (mode === 'CRYPTO') {
+                // Simplified Crypto Fee (e.g., 0.005% of transaction volume, no min/max)
+                return v * 0.00005; // 0.005% is 0.00005
+            } else {
+                // Standard Stock Fee (4.90 + 0.25% up to 69.90 max)
+                let f = 4.90 + (v * 0.0025);
+                return f > 69.90 ? 69.90 : f;
+            }
+        };
         let prevRes = 0;
 
         window.toggleProfitMode = function(calc = true) {
@@ -618,20 +682,20 @@
         }
 
         function calculate() {
-            const bp = parseFloat(document.getElementById('buyPrice').value)||0; // Buy Price (Historical Cost)
-            const dp = parseFloat(document.getElementById('dailyPrice').value)||0; // Daily Price (Current Market)
+            const bp = parseFloat(document.getElementById('buyPrice').value)||0; 
+            const dp = parseFloat(document.getElementById('dailyPrice').value)||0; 
             const qty = parseFloat(document.getElementById('quantity').value)||0;
             const slider = parseFloat(document.getElementById('profitSlider').value)||0;
             const useTax = document.getElementById('taxToggle').checked;
             const purchaseDateIso = document.getElementById('purchaseDate').value;
             
             // --- CORE TARGET CALCULATION (Uses Buy Price / Invest) ---
-            const rawValue = bp * qty; // NEW: Raw share value
-            const buyFee = calcFee(rawValue); // NEW: Separate buy fee
+            const rawValue = bp * qty; 
+            const buyFee = calcFee(rawValue, assetMode); // Uses dynamic calcFee
             const invest = rawValue + buyFee;
             
-            // Update Invest Breakdown display (NEW)
-            document.getElementById('purchaseDateDisplay').textContent = fmtDateTime(purchaseDateIso); // Display date
+            // Update Invest Breakdown display
+            document.getElementById('purchaseDateDisplay').textContent = fmtDateTime(purchaseDateIso);
             document.getElementById('rawShareValue').textContent = fmt(rawValue);
             document.getElementById('buyFees').textContent = fmt(buyFee);
             document.getElementById('totalInvested').textContent = fmt(invest);
@@ -643,8 +707,20 @@
 
             let grossTarget = netTarget; if(useTax && netTarget>0) grossTarget = netTarget / (1 - 0.26375);
             const payout = invest + grossTarget;
-            let sellVol = (payout + 4.90) / 0.9975; if(calcFee(sellVol) >= 69.90) sellVol = payout + 69.90;
-            const sellFee = calcFee(sellVol);
+            
+            // Selling Fee calculation uses Target Sale Volume (payout)
+            // Stock-specific: Calculate potential sale volume needed to cover fixed fee correctly
+            let sellVol;
+            if (assetMode === 'STOCKS') {
+                // Reverse calculation for stock fees (4.90 + 0.25%)
+                sellVol = (payout + 4.90) / 0.9975; 
+                if(calcFee(sellVol, assetMode) >= 69.90) sellVol = payout + 69.90; // Apply max fee if calculation exceeds it
+            } else {
+                // Crypto-specific: No complicated reversal needed due to percentage fee (0.005%)
+                sellVol = payout / (1 - 0.00005);
+            }
+            
+            const sellFee = calcFee(sellVol, assetMode); // Uses dynamic calcFee
             const grossProfit = sellVol - sellFee - invest;
             const taxVal = (useTax && grossProfit > 0) ? grossProfit * 0.26375 : 0;
             const reqPrice = sellVol / qty;
@@ -657,18 +733,18 @@
             document.getElementById('requiredSellPriceShare').textContent = fmt(reqPrice);
             document.getElementById('percentChangeTarget').textContent = `${pctTarget >= 0 ? '+' : ''}${pctTarget.toFixed(2)} %`;
             
-            document.getElementById('totalFees').textContent = fmt(buyFee + sellFee); // Total Fees is Buy Fee + Sell Fee
+            document.getElementById('totalFees').textContent = fmt(buyFee + sellFee); 
             document.getElementById('taxAmount').textContent = fmt(taxVal);
             
             // --- CURRENT P&L CALCULATION (Uses Daily Price) ---
-            const currentSaleVol = (dp * qty); // Raw sale value
-            const totalBuyFee = calcFee(bp * qty);
-            const totalSellFee = calcFee(currentSaleVol);
+            const currentSaleVol = (dp * qty); 
+            const totalBuyFee = calcFee(bp * qty, assetMode);
+            const totalSellFee = calcFee(currentSaleVol, assetMode);
             const initialInvestment = (bp * qty) + totalBuyFee;
 
             // P&L Netto (Exklusive Steuern)
             const currentGrossProfit = currentSaleVol - totalSellFee - initialInvestment;
-            const currentNetProfit = currentGrossProfit; // Netto = Brutto (exkl. Steuer)
+            const currentNetProfit = currentGrossProfit; 
             
             const currentPct = (dp > 0 && bp > 0) ? ((dp - bp) / bp) * 100 : 0;
 
@@ -688,22 +764,22 @@
             const bp = parseFloat(trade.bp) || 0;
             const qty = parseFloat(trade.qty) || 0;
             const dp = parseFloat(currentDailyPrice) || 0;
+            const tradeMode = trade.am || 'STOCKS'; // NEW: Use trade's asset mode
             
             if(bp <= 0 || qty <= 0 || dp <= 0) return { profit: 0, profitPct: 0 };
 
             const rawBuyValue = bp * qty;
-            const buyFee = calcFee(rawBuyValue);
+            const buyFee = calcFee(rawBuyValue, tradeMode); // Use trade's mode
             const initialInvestment = rawBuyValue + buyFee;
 
             const rawSaleValue = dp * qty;
-            const sellFee = calcFee(rawSaleValue);
+            const sellFee = calcFee(rawSaleValue, tradeMode); // Use trade's mode
 
             const grossProfit = rawSaleValue - sellFee - initialInvestment;
 
             let finalProfit = grossProfit;
 
             if (includeTax && grossProfit > 0) {
-                // Simplified tax calculation (25% + 1.375% Soli)
                 const tax = grossProfit * 0.26375; 
                 finalProfit = grossProfit - tax;
             }
@@ -722,11 +798,11 @@
             const t = { 
                 id: Date.now(), 
                 sym: document.getElementById('searchInput').value || "Manuell", 
-                date: document.getElementById('purchaseDate').value, // Save ISO date
+                date: document.getElementById('purchaseDate').value, 
                 qty: document.getElementById('quantity').value, 
                 tgt: document.getElementById('requiredSellPriceTotal').innerText,
-                bp: document.getElementById('buyPrice').value, // Save Buy Price
-                // dp: document.getElementById('dailyPrice').value // We don't save daily price, it changes constantly
+                bp: document.getElementById('buyPrice').value, 
+                am: assetMode // NEW: Save Asset Mode with the trade
             };
             const l = JSON.parse(localStorage.getItem(KEYS.T)||'[]'); l.unshift(t);
             localStorage.setItem(KEYS.T, JSON.stringify(l)); AudioEngine.playSuccess(); showToast("Trade gesichert"); renderTrades();
@@ -747,6 +823,7 @@
                 const pnlColor = pnl.profit >= 0 ? 'text-emerald-400' : 'text-red-400';
                 const pnlText = `${pnlSign}${fmt(pnl.profit)} (${pnlSign}${pnl.profitPct.toFixed(2)} %)`;
                 const todayText = currentDailyPrice > 0 ? `Tageskurs: ${fmt(currentDailyPrice)}` : 'Tageskurs fehlt';
+                const modeLabel = (x.am === 'CRYPTO') ? 'Krypto' : 'Aktie';
 
                 return `
                     <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-4 flex justify-between items-center interactive">
@@ -756,11 +833,11 @@
                                 <span class="text-slate-400 text-[10px]">${new Date(x.date).toLocaleDateString()}</span>
                             </div>
                             <div class="text-xs text-gray-300 font-mono">
-                                Kaufkurs: <span class="text-slate-300 font-bold">${fmt(x.bp)}</span> <span class="text-slate-600 font-bold text-sm mx-1">|</span> ${todayText}
+                                Kaufkurs: <span class="text-slate-300 font-bold">${fmt(x.bp)}</span> <span class="text-slate-600 text-xs mx-1">|</span> ${todayText}
                             </div>
                         </div>
                         <div class="text-right">
-                            <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">${includeTax ? 'P&L Netto (inkl. St.)' : 'P&L Netto (exkl. St.)'}</p>
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">${modeLabel} P&L (${includeTax ? 'inkl. St.' : 'exkl. St.'})</p>
                             <p class="text-sm font-bold font-mono ${pnlColor} whitespace-nowrap">${pnlText}</p>
                         </div>
                         <button onclick="delTrade(${x.id})" class="text-slate-500 hover:text-red-400 p-2 flex-shrink-0">
@@ -796,43 +873,64 @@
             const q=document.getElementById('searchInput').value; if(!q)return;
             const r=document.getElementById('searchResults'), l=document.getElementById('loadingIndicator');
             r.innerHTML=''; r.classList.add('hidden'); l.classList.remove('hidden');
+            
+            // NEW: Select search URL based on assetMode
+            const baseUrl = assetMode === 'CRYPTO'
+                ? `https://query1.finance.yahoo.com/v1/finance/search?q=${q}&quotesCount=5&newsCount=0&enableFuzzyQuery=false&quotesQueryId=cryptocurrency`
+                : `https://query1.finance.yahoo.com/v1/finance/search?q=${q}&quotesCount=5`;
+
             try {
-                const d = await fetchSafe(`https://query1.finance.yahoo.com/v1/finance/search?q=${q}&quotesCount=5`);
+                const d = await fetchSafe(baseUrl);
                 l.classList.add('hidden');
+                
+                // Use quotes array which works for both modes
                 if(d.quotes?.length) {
                     r.classList.remove('hidden');
                     d.quotes.forEach(s => {
+                        // Filter out non-matching asset types in case the search was broad
+                        if (assetMode === 'CRYPTO' && s.quoteType !== 'CRYPTOCURRENCY') return;
+                        if (assetMode === 'STOCKS' && s.quoteType === 'CRYPTOCURRENCY') return;
+
                         const div = document.createElement('div');
-                        // FIX: Used dark theme classes for search results.
                         div.className="p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700 flex justify-between items-center interactive";
                         div.innerHTML=`<div><div class="font-bold text-slate-200 text-sm">${s.symbol}</div><div class="text-[10px] text-slate-500">${s.shortname||s.longname}</div></div>`;
                         div.onmousedown=(e)=>{e.preventDefault(); fetchPrice(s.symbol);}; r.appendChild(div);
                     });
+                    if (r.children.length === 0) showToast("Keine passenden Ergebnisse gefunden");
                 } else showToast("Nichts gefunden");
-            } catch(e){ l.classList.add('hidden'); showToast("Fehler"); }
+            } catch(e){ l.classList.add('hidden'); showToast("Fehler bei der Suche"); }
         };
         async function fetchPrice(s) {
             document.getElementById('searchResults').classList.add('hidden'); document.getElementById('searchInput').value=s;
             document.getElementById('loadingIndicator').classList.remove('hidden');
+            
+            const apiUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${s}?range=max&interval=1mo`;
+
             try {
-                const d = await fetchSafe(`https://query1.finance.yahoo.com/v8/finance/chart/${s}?range=max&interval=1mo`);
-                const p = d.chart?.result?.[0]?.meta?.regularMarketPrice;
+                const d = await fetchSafe(apiUrl);
+                const meta = d.chart?.result?.[0]?.meta;
+                const p = meta?.regularMarketPrice || meta?.regularMarketPreviousClose; // Use previous close as fallback
+
                 if(d.chart?.result?.[0]?.indicators?.quote?.[0]?.close) {
                     const q = d.chart.result[0].indicators.quote[0].close;
                     const t = d.chart.result[0].timestamp;
                     chartData = { quotes: q.filter(n=>n!==null), stamps: t.filter((_,i)=>q[i]!==null) };
                 }
+
+                const yahooLinkBase = (assetMode === 'CRYPTO') ? `https://finance.yahoo.com/quote/${s}` : `https://finance.yahoo.com/quote/${s}`;
+                document.getElementById('yahooLink').href = yahooLinkBase;
+                
                 if(p) { 
                     AudioEngine.playSuccess(); 
-                    // Set dailyPrice
                     document.getElementById('dailyPrice').value=p.toFixed(2);
-                    document.getElementById('yahooLink').href=`https://finance.yahoo.com/quote/${s}`; 
                     addToRecents(s); 
-                    toggleDailyPriceEdit(); // WICHTIG: Deaktivierung/Aktivierung des Feldes anpassen
-                    saveAndCalc(); // Call saveAndCalc to save the new daily price and update the UI
-                    renderTrades(); // Update trades with the new daily price
+                    toggleDailyPriceEdit();
+                    saveAndCalc();
+                    renderTrades();
+                } else {
+                    showToast("Kein aktueller Kurs gefunden");
                 }
-            } catch(e){ showToast("Kein Kurs"); } finally { document.getElementById('loadingIndicator').classList.add('hidden'); }
+            } catch(e){ showToast("Fehler beim Abruf des Kurses"); } finally { document.getElementById('loadingIndicator').classList.add('hidden'); }
         }
 
         // === CHART RENDERING (Pure & Safe) ===
@@ -851,7 +949,7 @@
 
             // Markers from DOM (Read-only here)
             const bp = parseFloat(document.getElementById('buyPrice').value) || 0;
-            const dp = parseFloat(document.getElementById('dailyPrice').value) || 0; // NEW: Daily Price
+            const dp = parseFloat(document.getElementById('dailyPrice').value) || 0;
             const q = parseFloat(document.getElementById('quantity').value) || 1;
             const tpTotal = parseFloat(document.getElementById('requiredSellPriceTotal').innerText.replace('.','').replace(',','.').replace(' €','')) || 0;
             const tp = tpTotal / (q > 0 ? q : 1);
