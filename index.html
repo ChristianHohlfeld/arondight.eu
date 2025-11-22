@@ -1034,6 +1034,46 @@
                 profitPct: profitPct 
             };
         }
+        
+        // NEU: Funktion zum Laden eines Trades aus der Historie
+        window.loadTrade = function(trade) {
+            // 1. Modus umschalten, falls nötig (speichert den alten aktiven Zustand)
+            const newMode = trade.am;
+            if (assetMode !== newMode) {
+                const toggle = document.getElementById('assetModeToggle');
+                toggle.checked = (newMode === 'CRYPTO');
+                assetMode = newMode;
+                updateAssetUI();
+                // Explore State und Recents werden durch toggleAssetMode indirekt beim Laden des States aktualisiert
+            }
+            
+            // 2. Zustand der Eingabefelder direkt setzen (ohne loadState aus localStorage)
+            document.getElementById('buyPrice').value = trade.bp || "0.00";
+            document.getElementById('quantity').value = trade.qty || "0";
+            document.getElementById('searchInput').value = trade.sym || "";
+            document.getElementById('purchaseDate').value = trade.date || new Date().toISOString().slice(0,16);
+            
+            // Setze Profit Slider auf 0, um die Berechnung nicht zu verfälschen,
+            // wenn man einen historischen Trade lädt, dessen Ziel erreicht wurde
+            document.getElementById('profitSlider').value = "0"; 
+            document.getElementById('profitModeToggle').checked = false; 
+
+            // 3. Status speichern (damit der neue Zustand bei Neuladen persistent ist)
+            saveState();
+
+            // 4. Tageskurs asynchron abrufen und Berechnung durchführen
+            if (trade.sym) {
+                fetchPrice(trade.sym);
+            } else {
+                 // Wenn kein Symbol, einfach berechnen, da buyPrice und qty gesetzt sind
+                calculate(); 
+            }
+            
+            // 5. Zur Vorderseite wechseln
+            if (document.getElementById('main-card').classList.contains('is-flipped')) {
+                toggleFlip();
+            }
+        };
 
 
         window.saveTrade = function() {
@@ -1072,9 +1112,9 @@
                 const todayText = currentDailyPrice > 0 ? `${fmt(currentDailyPrice)}` : 'N/A';
                 const modeLabel = (x.am === 'CRYPTO') ? 'KRYPTO' : 'AKTIE';
 
-                // NEU: Verbessertes, kompakteres Layout für die Historienkachel
+                // NEU: onmousedown event für loadTrade hinzugefügt
                 return `
-                    <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-4 flex justify-between items-start interactive transition-all hover:bg-slate-700/50">
+                    <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-4 flex justify-between items-start interactive transition-all hover:bg-slate-700/50" onmousedown="loadTrade(${JSON.stringify(x).replace(/"/g, '\'')});">
                         <!-- Left Block: Symbol, Date, P&L Label -->
                         <div class="flex flex-col gap-1">
                             <div class="flex items-center gap-2">
@@ -1096,8 +1136,8 @@
                             <p class="text-lg font-bold font-mono ${pnlColor} whitespace-nowrap leading-tight">${fmt(pnl.profit)}</p>
                             <p class="text-sm font-medium ${pnlColor} whitespace-nowrap mt-0.5 opacity-80">${pnlSign}${pnl.profitPct.toFixed(2)} %</p>
                             
-                            <!-- Delete Button -->
-                            <button onclick="delTrade(${x.id})" class="text-slate-500 hover:text-red-400 p-2 -mr-2 mt-2 transition-colors">
+                            <!-- Delete Button (onclick event on button, not card) -->
+                            <button onclick="event.stopPropagation(); delTrade(${x.id})" class="text-slate-500 hover:text-red-400 p-2 -mr-2 mt-2 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </button>
                         </div>
