@@ -636,6 +636,7 @@
             toggleDailyPriceEdit();
             saveAndCalc();
             renderTrades(); // Recalculate P&L with new fee structure
+            updateRecentsUI(); // FIX: Update recent searches display
             saveState(); // Save the new mode
             fetchTrendingAssets(); // Fetch new trending list for the new mode
         }
@@ -994,17 +995,35 @@
         }
         window.delTrade = function(id) { showModal('warn', 'Löschen?', 'Entfernen?', [{label:'Löschen', cls:'btn-action btn-danger', cb:()=>{ let l=JSON.parse(localStorage.getItem(KEYS.T)||'[]'); l=l.filter(x=>x.id!==id); localStorage.setItem(KEYS.T,JSON.stringify(l)); renderTrades(); }}, {label:'Abbrechen', cls:'btn-action btn-secondary'}]); };
 
+        // FIX: Filtering in updateRecentsUI() applied
+        function isCryptoSymbol(sym) {
+            return sym.includes('-') || sym.length > 5; // Simple heuristic: Crypto often uses 'BTC-USD' format or longer contract names
+        }
+        
         function addToRecents(sym) {
             let h = JSON.parse(localStorage.getItem(KEYS.H)||'[]');
+            // Store symbol with mode context for later filtering
+            if (assetMode === 'CRYPTO') {
+                if (!isCryptoSymbol(sym)) return; // Only save if it looks like a crypto/contract
+            } else {
+                 if (isCryptoSymbol(sym)) return; // Only save if it looks like a stock
+            }
+            
             h = h.filter(i => i !== sym); h.unshift(sym);
             if(h.length > 3) h.pop();
             localStorage.setItem(KEYS.H, JSON.stringify(h));
             updateRecentsUI();
         }
         function updateRecentsUI() {
-            const h = JSON.parse(localStorage.getItem(KEYS.H)||'[]');
+            const allRecents = JSON.parse(localStorage.getItem(KEYS.H)||'[]');
+            
+            const filteredRecents = allRecents.filter(sym => {
+                const isCrypto = isCryptoSymbol(sym);
+                return (assetMode === 'CRYPTO' && isCrypto) || (assetMode === 'STOCKS' && !isCrypto);
+            });
+
             const c = document.getElementById('recent-searches');
-            c.innerHTML = h.map(s => `<span class="stock-badge" onclick="fetchPrice('${s}')">${s}</span>`).join('');
+            c.innerHTML = filteredRecents.map(s => `<span class="stock-badge" onclick="fetchPrice('${s}')">${s}</span>`).join('');
         }
 
         // --- TRENDING LOGIC ---
@@ -1037,9 +1056,11 @@
         }
 
         window.fetchTrendingAssets = async function(manualRefresh = false) {
+            const list = document.getElementById('trending-list');
+            if (!list) return;
+
             if (!manualRefresh && trendingAssets.length > 0) {
                  // Nur Preise aktualisieren, wenn schon Assets geladen sind
-                 const list = document.getElementById('trending-list');
                  list.innerHTML = `<div class="col-span-2 text-center text-slate-500 text-xs mt-1">Aktualisiere...</div>`;
             } else {
                  // Neue Assets wählen, wenn manueller Refresh oder leer
@@ -1087,7 +1108,7 @@
             clearInterval(trendingUpdateInterval);
         }
         trendingUpdateInterval = setInterval(() => {
-            if (document.getElementById('main-card').classList.contains('is-flipped')) {
+            if (!document.getElementById('main-card').classList.contains('is-flipped')) {
                 // Update trending data only if the front side is visible
                 fetchTrendingAssets();
             }
