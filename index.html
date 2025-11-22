@@ -215,8 +215,18 @@
                             </div>
                         </div>
                     </div>
-                    <!-- NEU: Save/Load Buttons -->
+                    <!-- NEU: Save/Load / Unmute / Asset Toggle Buttons -->
                     <div class="flex items-center gap-2">
+                         <!-- Asset Mode Toggle (STOCK / CRYPTO) - NEU HIER PLATZIERT -->
+                        <label class="flex items-center cursor-pointer gap-2 select-none group interactive p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors border border-gray-700/50" onclick="AudioEngine.playImpact('plastic');">
+                            <div class="relative w-9 h-5">
+                                <input type="checkbox" id="assetModeToggle" class="peer sr-only" onchange="toggleAssetMode()">
+                                <div class="w-full h-full bg-slate-600 rounded-full shadow-inner peer-checked:bg-emerald-500 transition-colors duration-200 toggle-track"></div>
+                                <div class="absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full shadow transition-transform duration-200 peer-checked:translate-x-[1rem] toggle-knob"></div>
+                            </div>
+                            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-slate-300 transition-colors" id="assetModeLabel">Aktie</span>
+                        </label>
+                        
                         <!-- UNMUTE/MUTE BUTTON -->
                         <button id="unmuteButton" onclick="AudioEngine.unmute()" class="interactive p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors border border-gray-700/50" title="Sound aktivieren">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -232,7 +242,7 @@
                         </button>
                         <input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(this)">
                     </div>
-                    <!-- Ende NEU: Save/Load Buttons -->
+                    <!-- Ende NEU: Header Buttons -->
                     <a id="yahooLink" href="https://finance.yahoo.com/quote/GOOG" target="_blank" class="interactive p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-emerald-400 transition-colors border border-gray-700/50 hidden md:inline-flex" title="Yahoo Finance">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
                     </a>
@@ -301,16 +311,6 @@
                     <div class="bg-slate-800/30 p-4 rounded-2xl border border-white/5">
                         <div class="flex justify-between items-center mb-4">
                             
-                            <!-- Asset Mode Toggle (STOCK / CRYPTO) -->
-                            <label class="flex items-center cursor-pointer gap-2 select-none group interactive" onclick="AudioEngine.playImpact('plastic')">
-                                <div class="relative w-9 h-5">
-                                    <input type="checkbox" id="assetModeToggle" class="peer sr-only" onchange="toggleAssetMode()">
-                                    <div class="w-full h-full bg-slate-600 rounded-full shadow-inner peer-checked:bg-emerald-500 transition-colors duration-200"></div>
-                                    <div class="absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full shadow transition-transform duration-200 peer-checked:translate-x-[1rem]"></div>
-                                </div>
-                                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-slate-300 transition-colors" id="assetModeLabel">Aktie</span>
-                            </label>
-
                             <!-- Tax Toggle -->
                             <label class="flex items-center cursor-pointer gap-2 select-none group interactive" onclick="AudioEngine.playImpact('plastic')">
                                 <div class="relative w-9 h-5">
@@ -595,15 +595,25 @@
             
             const r = localStorage.getItem(KEYS.D);
 
-            // Default: If no state is saved, initialize Tageskurs to be the same as Kaufkurs default (258.00)
+            // 1. Initial Defaults for the UI elements in the result panel (before loading state)
+            // This is crucial to prevent the TypeError if state loading fails or before first calculation.
+            document.getElementById('requiredSellPriceTotal').textContent = '0,00 €';
+            document.getElementById('requiredSellPriceShare').textContent = '0,00 €';
+            document.getElementById('percentChangeTarget').textContent = '+0.00 %';
+            document.getElementById('totalInvested').textContent = '0,00 €';
+            document.getElementById('totalFees').textContent = '0,00 €';
+            document.getElementById('taxAmount').textContent = '0,00 €';
+            
+            // 2. Load Defaults if no state is saved
             if(!r) { 
                 document.getElementById('dailyPrice').value = document.getElementById('buyPrice').value;
                 toggleDailyPriceEdit();
-                calculate(); 
                 updateAssetUI(); // Initialize UI labels
+                calculate(); 
                 return; 
             }
 
+            // 3. Load State
             try {
                 const d = JSON.parse(r);
                 if(d.am) { // Load Asset Mode first
@@ -630,6 +640,8 @@
                 if(d.pm) { document.getElementById('profitModeToggle').checked = (d.pm==='PERCENT'); toggleProfitMode(false); }
                 
                 toggleDailyPriceEdit();
+                
+                // 4. Final Calculation after loading all values
                 // If fetchPrice is not called (i.e. d.sym is empty or null), calculate here
                 if (!d.sym) calculate();
 
@@ -710,7 +722,10 @@
         };
         window.handleToggle = function(sound=true) {
             const c = document.getElementById('taxToggle');
-            document.getElementById('taxInfo').style.opacity = c.checked ? '1' : '0';
+            const taxInfoEl = document.getElementById('taxInfo');
+            if (taxInfoEl) {
+                taxInfoEl.style.opacity = c.checked ? '1' : '0';
+            }
             saveAndCalc();
         };
         window.handleSlider = function(el) {
@@ -741,7 +756,17 @@
 
             let netTarget = (profitMode==='EUR') ? slider : (invest * (slider/100));
             document.getElementById('targetProfitDisplay').textContent = (profitMode==='EUR') ? fmt(netTarget) : `${slider.toFixed(1)} % (${fmt(netTarget)})`;
-            if(bp<=0 || qty<=0) { renderCanvas(); return; }
+            if(bp<=0 || qty<=0) { 
+                document.getElementById('requiredSellPriceTotal').textContent = fmt(0);
+                document.getElementById('requiredSellPriceShare').textContent = fmt(0);
+                document.getElementById('percentChangeTarget').textContent = '+0.00 %';
+                document.getElementById('totalFees').textContent = fmt(0);
+                document.getElementById('taxAmount').textContent = fmt(0);
+                document.getElementById('currentPnL').textContent = '+0.00 % (0,00 €)';
+                document.getElementById('currentPnL').className = 'text-[11px] font-bold px-2 py-0.5 rounded text-slate-400 bg-slate-700/50 border border-slate-700';
+                renderCanvas(); 
+                return; 
+            }
 
             let grossTarget = netTarget; if(useTax && netTarget>0) grossTarget = netTarget / (1 - 0.26375);
             const payout = invest + grossTarget;
