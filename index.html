@@ -288,24 +288,39 @@
                     </div>
 
                     <!-- Trending Section (NEW) -->
-                    <div class="explore-card p-4 space-y-3">
-                        <h3 class="text-sm font-bold text-white uppercase tracking-wider flex justify-between items-center">
-                            <span id="trendingTitle">Trending Heute (Aktie)</span>
-                            <svg onclick="fetchTrendingAssets(true)" class="h-4 w-4 text-slate-500 interactive hover:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 10v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                        </h3>
-                        <div id="trending-list" class="grid grid-cols-2 gap-3">
-                            <div class="p-3 bg-slate-900/40 rounded-xl border border-slate-700/50 flex flex-col justify-between interactive transition-colors hover:bg-slate-700/50" onclick="fetchPrice('MSFT')">
-                                <span class="text-white font-bold text-sm">MSFT</span>
-                                <span class="text-xs text-emerald-400 font-mono mt-1">+1.5%</span>
+                    <div id="explore-wrapper" class="explore-card p-4 space-y-3">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-sm font-bold text-white uppercase tracking-wider" id="trendingTitle">Trending Heute (Aktie)</h3>
+                            <!-- Explore Toggle -->
+                            <label class="flex items-center cursor-pointer gap-2 select-none group interactive" onclick="AudioEngine.playImpact('plastic')">
+                                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-slate-300 transition-colors">Anzeigen</span>
+                                <div class="relative w-9 h-5">
+                                    <input type="checkbox" id="exploreToggle" class="peer sr-only" onchange="toggleExplore(this.checked)">
+                                    <div class="w-full h-full bg-slate-600 rounded-full shadow-inner peer-checked:bg-emerald-500 transition-colors duration-200 toggle-track"></div>
+                                    <div class="absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full shadow transition-transform duration-200 peer-checked:translate-x-[1rem] toggle-knob"></div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div id="trending-content">
+                            <div id="trending-list" class="grid grid-cols-2 gap-3">
+                                <!-- Assets will be rendered here -->
                             </div>
-                            <div class="p-3 bg-slate-900/40 rounded-xl border border-slate-700/50 flex flex-col justify-between interactive transition-colors hover:bg-slate-700/50" onclick="fetchPrice('AMZN')">
-                                <span class="text-white font-bold text-sm">AMZN</span>
-                                <span class="text-xs text-red-400 font-mono mt-1">-0.8%</span>
+                            <!-- Paginierung -->
+                            <div class="flex justify-between items-center mt-3 pt-3 border-t border-slate-700/50">
+                                <button onclick="navigateTrending(-1)" id="trendingPrevBtn" class="p-2 rounded-full bg-slate-800 text-slate-400 hover:text-emerald-400 transition-colors interactive disabled:opacity-30 disabled:pointer-events-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                                </button>
+                                <span id="trendingPageInfo" class="text-xs text-slate-500 font-mono">Seite 1/1</span>
+                                <button onclick="navigateTrending(1)" id="trendingNextBtn" class="p-2 rounded-full bg-slate-800 text-slate-400 hover:text-emerald-400 transition-colors interactive disabled:opacity-30 disabled:pointer-events-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                </button>
                             </div>
                         </div>
                     </div>
+                    <!-- Ende Trending Section -->
 
-                    <!-- Inputs -->
+                    <!-- Inputs (2x2 Layout Fix) -->
                     <div class="grid grid-cols-2 gap-3">
                         <!-- Kaufkurs (Historisch) -->
                         <div class="bg-slate-800/40 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors interactive">
@@ -328,8 +343,8 @@
                             <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Anzahl</label>
                             <input type="number" id="quantity" value="2" step="1" class="w-full bg-transparent p-0 text-right font-mono text-lg font-bold text-white outline-none" oninput="saveAndCalc()">
                         </div>
-                        <!-- Kaufdatum -->
-                        <div class="col-span-2 bg-slate-800/40 p-2.5 px-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors flex justify-between items-center interactive" id="purchaseDateContainer">
+                        <!-- Kaufdatum (Wieder im 2er Grid) -->
+                        <div class="bg-slate-800/40 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors flex justify-between items-center interactive" id="purchaseDateContainer">
                             <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Kaufdatum</label>
                             <input type="datetime-local" id="purchaseDate" class="bg-transparent border-none p-0 text-right font-mono text-xs font-medium text-slate-300 outline-none tracking-wide">
                         </div>
@@ -563,7 +578,8 @@
             C:'ing_cons', U:'ing_user', 
             D_STOCKS: 'ing_data_stocks', D_CRYPTO: 'ing_data_crypto',
             T_STOCKS: 'ing_trade_stocks', T_CRYPTO: 'ing_trade_crypto',
-            H_STOCKS: 'ing_history_stocks', H_CRYPTO: 'ing_history_crypto'
+            H_STOCKS: 'ing_history_stocks', H_CRYPTO: 'ing_history_crypto',
+            E_STOCKS: 'ing_explore_stocks', E_CRYPTO: 'ing_explore_crypto', // NEW: Keys for Explore State (Page Index, Toggle)
         };
         
         let profitMode = 'EUR';
@@ -598,6 +614,8 @@
                     localStorage.removeItem(KEYS.T_CRYPTO);
                     localStorage.removeItem(KEYS.H_STOCKS);
                     localStorage.removeItem(KEYS.H_CRYPTO);
+                    localStorage.removeItem(KEYS.E_STOCKS); // NEW: Reset Explore State
+                    localStorage.removeItem(KEYS.E_CRYPTO); // NEW: Reset Explore State
                     location.reload(); 
                 }}, 
                 {label:'Abbrechen', cls:'btn-action btn-secondary'}
@@ -653,6 +671,7 @@
         window.toggleAssetMode = function() {
             // 1. Save the state of the CURRENT mode before switching
             saveState();
+            saveExploreState(); // Save current explore page index
 
             // 2. Switch the mode
             const chk = document.getElementById('assetModeToggle');
@@ -661,6 +680,7 @@
             // 3. Update UI and load the NEW mode's state
             updateAssetUI();
             loadState(false); // Load state for the new mode, do not save current state again
+            loadExploreState(); // Load new explore page index and toggle state
             
             // Re-run dependencies for the new mode
             // NOTE: toggleDailyPriceEdit is handled inside loadState/fetchPrice.
@@ -679,6 +699,10 @@
 
         function getCurrentRecentsKey() {
              return assetMode === 'STOCKS' ? KEYS.H_STOCKS : KEYS.H_CRYPTO;
+        }
+        
+        function getCurrentExploreKey() {
+             return assetMode === 'STOCKS' ? KEYS.E_STOCKS : KEYS.E_CRYPTO;
         }
 
 
@@ -1110,12 +1134,96 @@
             c.innerHTML = filteredRecents.map(s => `<span class="stock-badge" onclick="fetchPrice('${s}')">${s}</span>`).join('');
         }
 
-        // --- TRENDING LOGIC ---
-        const STOCK_TRENDS = ['MSFT', 'AMZN', 'GOOGL', 'TSLA', 'AAPL', 'NVDA', 'V', 'JNJ', 'WMT'];
-        const CRYPTO_TRENDS = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'ADA-USD', 'XRP-USD', 'DOGE-USD', 'DOT-USD', 'LINK-USD'];
+        // --- TRENDING LOGIC (PAGINATION) ---
+        const STOCK_TRENDS_PAG = [
+            ['MSFT', 'AMZN', 'GOOGL', 'TSLA'],
+            ['AAPL', 'NVDA', 'V', 'JNJ'],
+            ['WMT', 'KO', 'PEP', 'DIS']
+        ];
+        const CRYPTO_TRENDS_PAG = [
+            ['BTC-USD', 'ETH-USD', 'SOL-USD', 'ADA-USD'],
+            ['XRP-USD', 'DOGE-USD', 'DOT-USD', 'LINK-USD'],
+            ['BCH-USD', 'LTC-USD', 'XLM-USD', 'ETC-USD']
+        ];
         
         let trendingAssets = [];
         let trendingUpdateInterval;
+        const TRENDING_PAGE_SIZE = 4;
+        
+        function getTrendingPool() {
+            return assetMode === 'CRYPTO' ? CRYPTO_TRENDS_PAG : STOCK_TRENDS_PAG;
+        }
+
+        function loadExploreState() {
+            const exploreKey = getCurrentExploreKey();
+            const r = localStorage.getItem(exploreKey);
+            let pageIndex = 0;
+            let isVisible = true;
+            
+            if (r) {
+                 try {
+                     const d = JSON.parse(r);
+                     pageIndex = d.pageIndex || 0;
+                     isVisible = d.isVisible !== false; // Default to true
+                 } catch(e) { console.error("Error loading explore state:", e); }
+            }
+            
+            // Set Page Index (stored in localStorage under the specific asset mode key)
+            exploreState.pageIndex = pageIndex;
+            
+            // Set Toggle State
+            const toggleEl = document.getElementById('exploreToggle');
+            const wrapperEl = document.getElementById('explore-wrapper');
+            if (toggleEl && wrapperEl) {
+                toggleEl.checked = isVisible;
+                wrapperEl.classList.toggle('hidden', !isVisible);
+            }
+            
+            // Initial fetch to fill the list based on the loaded pageIndex
+            fetchTrendingAssets();
+        }
+
+        function saveExploreState() {
+            if(localStorage.getItem(KEYS.C)!=='true') return;
+            const exploreKey = getCurrentExploreKey();
+            const d = {
+                pageIndex: exploreState.pageIndex,
+                isVisible: document.getElementById('exploreToggle').checked
+            };
+            localStorage.setItem(exploreKey, JSON.stringify(d));
+        }
+
+        window.toggleExplore = function(isChecked) {
+            const wrapperEl = document.getElementById('explore-wrapper');
+            if (wrapperEl) {
+                wrapperEl.classList.toggle('hidden', !isChecked);
+                if (isChecked) {
+                    fetchTrendingAssets(); // Fetch immediately when turning on
+                }
+            }
+            saveExploreState();
+        }
+
+        // Global State for the current explore panel, which persists across fetches/renders
+        const exploreState = { pageIndex: 0 };
+        
+        window.navigateTrending = function(direction) {
+            const pool = getTrendingPool();
+            const maxPages = pool.length;
+            
+            exploreState.pageIndex += direction;
+
+            // Clamp the index
+            if (exploreState.pageIndex < 0) {
+                exploreState.pageIndex = maxPages - 1; // Wrap around to end
+            } else if (exploreState.pageIndex >= maxPages) {
+                exploreState.pageIndex = 0; // Wrap around to start
+            }
+            
+            saveExploreState();
+            fetchTrendingAssets();
+            AudioEngine.playSwoosh();
+        }
         
         // Helper to fetch the current price and update the display for a single asset
         async function fetchTrendingPrice(sym) {
@@ -1140,19 +1248,18 @@
         }
 
         window.fetchTrendingAssets = async function(manualRefresh = false) {
-            const list = document.getElementById('trending-list');
-            if (!list) return;
+            const listEl = document.getElementById('trending-list');
+            const contentEl = document.getElementById('trending-content');
+            if (!listEl || !contentEl || !document.getElementById('exploreToggle').checked) return;
 
-            if (!manualRefresh && trendingAssets.length > 0) {
-                 // Nur Preise aktualisieren, wenn schon Assets geladen sind
-                 list.innerHTML = `<div class="col-span-2 text-center text-slate-500 text-xs mt-1">Aktualisiere...</div>`;
-            } else {
-                 // Neue Assets wählen, wenn manueller Refresh oder leer
-                 const pool = assetMode === 'CRYPTO' ? CRYPTO_TRENDS : STOCK_TRENDS;
-                 const shuffled = pool.sort(() => 0.5 - Math.random());
-                 const selected = shuffled.slice(0, 4); // Top 4 random
-                 trendingAssets = selected.map(sym => ({ symbol: sym, changePct: 0, price: 0 }));
-            }
+            const pool = getTrendingPool();
+            const pageIndex = exploreState.pageIndex;
+            const symbols = pool[pageIndex] || [];
+            
+            // Set global trendingAssets to the symbols for the current page
+            trendingAssets = symbols.map(sym => ({ symbol: sym, changePct: 0, price: 0 }));
+
+            listEl.innerHTML = `<div class="col-span-2 text-center text-slate-500 text-xs mt-1">Lade Assets...</div>`;
             
             const promises = trendingAssets.map(asset => fetchTrendingPrice(asset.symbol));
             const results = await Promise.all(promises);
@@ -1161,18 +1268,26 @@
             trendingAssets = results.filter(r => r); 
             
             // Render the updated list
-            renderTrendingList();
+            renderTrendingList(pool.length);
         }
 
-        function renderTrendingList() {
+        function renderTrendingList(maxPages) {
             const list = document.getElementById('trending-list');
-            if (!list) return;
+            const prevBtn = document.getElementById('trendingPrevBtn');
+            const nextBtn = document.getElementById('trendingNextBtn');
+            const pageInfo = document.getElementById('trendingPageInfo');
+            
+            if (!list || !prevBtn || !nextBtn || !pageInfo) return;
 
             if (trendingAssets.length === 0) {
                  list.innerHTML = `<div class="col-span-2 text-center text-gray-600 text-xs italic mt-2">Keine Trending Assets gefunden.</div>`;
+                 prevBtn.disabled = true;
+                 nextBtn.disabled = true;
+                 pageInfo.textContent = 'Seite 0/0';
                  return;
             }
             
+            // Render assets
             list.innerHTML = trendingAssets.map(asset => {
                 const isPositive = asset.changePct >= 0;
                 const colorClass = isPositive ? 'text-emerald-400' : 'text-red-400';
@@ -1185,6 +1300,13 @@
                     </div>
                 `;
             }).join('');
+            
+            // Update pagination UI
+            const currentPage = exploreState.pageIndex + 1;
+            pageInfo.textContent = `Seite ${currentPage}/${maxPages}`;
+            // For wrapping navigation, buttons are never truly disabled unless maxPages < 1
+            prevBtn.disabled = false; 
+            nextBtn.disabled = false; 
         }
 
         // Setup periodic update for trending assets
@@ -1192,8 +1314,8 @@
             clearInterval(trendingUpdateInterval);
         }
         trendingUpdateInterval = setInterval(() => {
-            if (!document.getElementById('main-card').classList.contains('is-flipped')) {
-                // Update trending data only if the front side is visible
+            if (!document.getElementById('main-card').classList.contains('is-flipped') && document.getElementById('exploreToggle').checked) {
+                // Update trending data only if the front side is visible AND the kachel is visible
                 fetchTrendingAssets();
             }
         }, 120000); // Update every 2 minutes (120,000 ms)
@@ -1372,7 +1494,9 @@
                 t_stocks: JSON.parse(localStorage.getItem(KEYS.T_STOCKS) || 'null'),
                 t_crypto: JSON.parse(localStorage.getItem(KEYS.T_CRYPTO) || 'null'),
                 h_stocks: JSON.parse(localStorage.getItem(KEYS.H_STOCKS) || 'null'),
-                h_crypto: JSON.parse(localStorage.getItem(KEYS.H_CRYPTO) || 'null')
+                h_crypto: JSON.parse(localStorage.getItem(KEYS.H_CRYPTO) || 'null'),
+                e_stocks: JSON.parse(localStorage.getItem(KEYS.E_STOCKS) || 'null'), // NEW: Export Explore State
+                e_crypto: JSON.parse(localStorage.getItem(KEYS.E_CRYPTO) || 'null') // NEW: Export Explore State
             };
             const a = document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(d)],{type:'application/json'}));
             a.download=`TradePilot_Backup_${new Date().toISOString().slice(0, 10)}.json`; a.click();
@@ -1395,6 +1519,9 @@
                     
                     if(d.h_stocks)localStorage.setItem(KEYS.H_STOCKS,JSON.stringify(d.h_stocks));
                     if(d.h_crypto)localStorage.setItem(KEYS.H_CRYPTO,JSON.stringify(d.h_crypto));
+                    
+                    if(d.e_stocks)localStorage.setItem(KEYS.E_STOCKS,JSON.stringify(d.e_stocks)); // NEW: Import Explore State
+                    if(d.e_crypto)localStorage.setItem(KEYS.E_CRYPTO,JSON.stringify(d.e_crypto)); // NEW: Import Explore State
                     
                     location.reload(); 
                 }catch(x){ showToast("Fehler beim Importieren der Daten"); }
@@ -1438,10 +1565,10 @@
             }
 
             // Load Asset Mode on startup
-            const savedState = localStorage.getItem(getCurrentDataKey());
-            if (savedState) {
+            const savedDataState = localStorage.getItem(getCurrentDataKey());
+            if (savedDataState) {
                 try {
-                    const d = JSON.parse(savedState);
+                    const d = JSON.parse(savedDataState);
                     if (d.am) {
                          assetMode = d.am;
                          document.getElementById('assetModeToggle').checked = (assetMode === 'CRYPTO');
@@ -1449,6 +1576,7 @@
                 } catch(e) { /* ignore */ }
             }
             updateAssetUI(); // Ensure UI reflects the loaded/default mode immediately
+            loadExploreState(); // Load explore state (page index and visibility)
             window.initConsent();
         });
     </script>
