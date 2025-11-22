@@ -79,6 +79,18 @@
             user-select: none !important;
             pointer-events: none; /* Verhindert das Fokus-Ereignis */
         }
+        
+        /* FIX: Custom styling for date/time input to maintain proper visual alignment */
+        .date-input-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+        .date-input-group input[type="datetime-local"] {
+            /* Fix: Explicitly set width to allow space for label and icon without overflow */
+            max-width: 65%; 
+        }
 
         input[type=range] { -webkit-appearance: none; background: transparent; }
         input[type=range]::-webkit-slider-thumb {
@@ -357,9 +369,12 @@
                             <input type="number" id="quantity" value="2" step="1" class="w-full bg-transparent p-0 text-right font-mono text-lg font-bold text-white outline-none" oninput="saveAndCalc()">
                         </div>
                         <!-- Kaufdatum (IMPROVED LAYOUT) -->
-                        <div class="bg-slate-800/40 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors flex justify-between items-center interactive" id="purchaseDateContainer">
-                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-shrink-0">Kaufdatum</label>
-                            <input type="datetime-local" id="purchaseDate" class="bg-transparent border-none p-0 text-right font-mono text-sm font-medium text-slate-300 outline-none tracking-wide flex-shrink" style="max-width: 65%;">
+                        <div class="bg-slate-800/40 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors interactive">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Kaufdatum</label>
+                            <!-- Inner container for layout/alignment -->
+                            <div class="date-input-group">
+                                <input type="datetime-local" id="purchaseDate" class="bg-transparent border-none p-0 text-right font-mono text-lg font-bold text-white outline-none">
+                            </div>
                         </div>
                     </div>
 
