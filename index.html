@@ -3,6 +3,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Trade Pilot - Christian Hohlfeld</title>
+    <!-- Hinweis: cdn.tailwindcss.com wird nur für die Entwicklung verwendet. Für die Produktion sollte es als PostCSS-Plugin installiert werden. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* --- BASE SETTINGS --- */
@@ -20,7 +21,7 @@
         /* --- 3D CARD ENGINE --- */
         .scene { 
             perspective: 1200px; z-index: 20; position: relative; 
-            /* FIX: Höhe leicht reduziert, um Überlauf bei Rotation zu vermeiden */
+            /* FIX: Höhe leicht reduziert, um Überlauf bei Rotation zu vermeiden (82vh, max-height 760px) */
             width: 100%; max-width: 420px; height: 82vh; max-height: 760px; min-height: 600px;
         }
         .card {
@@ -216,6 +217,13 @@
                     </div>
                     <!-- NEU: Save/Load Buttons -->
                     <div class="flex items-center gap-2">
+                        <!-- UNMUTE/MUTE BUTTON -->
+                        <button id="unmuteButton" onclick="AudioEngine.unmute()" class="interactive p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors border border-gray-700/50" title="Sound aktivieren">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9.383 3.003h.334c1.192 0 2.378.085 3.565.253a.75.75 0 01.696.653 18.06 18.06 0 01.385 4.301c.07.728-.21 1.45-.77 1.884l-.19.143a.75.75 0 00-.285 1.054c.48.74 1.132 1.412 1.932 1.977l.21.154c.7.514 1.632.748 2.53.642.597-.07.97-.6.86-1.2l-.56-3.153a.75.75 0 00-.73-.615h-.89a.75.75 0 00-.73.615l-.56 3.153c-.01.07-.05.13-.106.184l-.19.143c-.45.33-.872.583-1.282.723a.75.75 0 01-.84.095 16.59 16.59 0 00-3.504-.252h-.334A.75.75 0 009.05 15.01V4.99c0-.414.336-.75.75-.75zM5.5 8a.5.5 0 000 1h2a.5.5 0 000-1h-2zm-2.5.5a.5.5 0 01.5-.5h2a.5.5 0 010 1h-2a.5.5 0 01-.5-.5z" clip-rule="evenodd"></path>
+                            </svg>
+                        </button>
+                        
                         <button onclick="exportData()" class="interactive p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors border border-gray-700/50" title="Daten speichern/Backup">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
                         </button>
@@ -437,18 +445,36 @@
         // === 1. AUDIO ENGINE ===
         const AudioEngine = {
             ctx: null, masterGain: null,
+            isUnlocked: false,
             init: function() {
                 if (!this.ctx) {
                     const AC = window.AudioContext || window.webkitAudioContext;
                     this.ctx = new AC(); this.masterGain = this.ctx.createGain();
                     this.masterGain.gain.value = 0.15; this.masterGain.connect(this.ctx.destination);
                 }
-                // NEU: Nur resume, nicht initiell abspielen.
-                if (this.ctx.state === 'suspended') this.ctx.resume();
+                // NEU: AudioContext nur fortsetzen/starten, wenn noch nicht freigeschaltet
+                if (this.ctx.state === 'suspended' && this.isUnlocked) this.ctx.resume();
+            },
+            unmute: function() {
+                this.init();
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume().then(() => {
+                        this.isUnlocked = true;
+                        document.getElementById('unmuteButton').classList.add('hidden');
+                        this.playImpact('plastic');
+                        console.log("AudioContext resumed and unlocked.");
+                    }).catch(e => {
+                        console.error("Failed to resume AudioContext:", e);
+                    });
+                } else if (this.ctx.state === 'running') {
+                    this.isUnlocked = true;
+                    document.getElementById('unmuteButton').classList.add('hidden');
+                    this.playImpact('plastic');
+                }
             },
             playImpact: function(mat) {
-                // NEU: Audio nur abspielen, wenn Context bereits initialisiert ist (d.h., nach erstem Klick/Touch)
-                if(!this.ctx) return; 
+                // Nur abspielen, wenn Context freigeschaltet ist
+                if (!this.isUnlocked) return; 
 
                 this.init(); const now = this.ctx.currentTime; const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
                 if (mat === 'glass') { o.type='sine'; o.frequency.setValueAtTime(400, now); g.gain.setValueAtTime(0.05, now); g.gain.exponentialRampToValueAtTime(0.001, now+0.1); }
@@ -457,13 +483,14 @@
                 o.connect(g); g.connect(this.masterGain); o.start(now); o.stop(now+0.2);
             },
             playTick: function() { 
-                if(!this.ctx) return;
+                if (!this.isUnlocked) return;
                 this.init(); const now = this.ctx.currentTime; const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
                 o.type='sine'; o.frequency.setValueAtTime(300, now); 
                 g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.1, now+0.005); g.gain.exponentialRampToValueAtTime(0.001, now+0.05);
                 o.connect(g); g.connect(this.masterGain); o.start(now); o.stop(now+0.06);
             },
             playSuccess: function() {
+                if (!this.isUnlocked) return;
                 this.init(); const now = this.ctx.currentTime; 
                 // NEU: Tiefere, weichere Frequenzen für einen angenehmeren "Erfolg"-Sound.
                 [440.00, 660.00].forEach(f => {
@@ -473,6 +500,7 @@
                 });
             },
             playSwoosh: function() {
+                if (!this.isUnlocked) return;
                 this.init(); const now = this.ctx.currentTime; const b = this.ctx.createBuffer(1, this.ctx.sampleRate*0.3, this.ctx.sampleRate);
                 const d = b.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
                 const s = this.ctx.createBufferSource(); s.buffer=b;
@@ -484,6 +512,11 @@
 
         // === 2. INTERACTIONS ===
         document.addEventListener('mousedown', (e) => {
+            // Unmute the audio context on first user click if necessary
+            if (!AudioEngine.isUnlocked) {
+                AudioEngine.unmute();
+            }
+
             const r = document.createElement("div"); r.className = "ripple";
             r.style.left = (e.clientX-10)+"px"; r.style.top = (e.clientY-10)+"px"; r.style.width="20px"; r.style.height="20px";
             document.body.appendChild(r); setTimeout(()=>r.remove(), 500);
@@ -508,7 +541,11 @@
             const s = localStorage.getItem(KEYS.C);
             const o=document.getElementById('consent-overlay'), b=document.getElementById('consent-initial-backdrop'), p=document.getElementById('consent-pause-screen'), r=document.getElementById('privacy-reset-btn');
             document.body.style.overflow='auto';
-            if(s==='true') { if(o)o.style.display='none'; if(b)b.style.display='none'; if(p)p.classList.add('hidden'); if(r)r.style.display='block'; checkLogin(); }
+            if(s==='true') { 
+                if(o)o.style.display='none'; if(b)b.style.display='none'; if(p)p.classList.add('hidden'); if(r)r.style.display='block'; 
+                checkLogin(); 
+                AudioEngine.init(); // Initialize the context, but don't resume/play automatically
+            }
             else if(s==='false') { if(o)o.style.display='none'; if(b)b.style.display='none'; if(p)p.classList.remove('hidden'); }
             else { showModal('consent', 'Datenschutz', 'Wir speichern Daten lokal.', [{label:'Akzeptieren', cls:'btn-action btn-primary', cb:()=>window.decideConsent(true)}, {label:'Ablehnen', cls:'btn-action btn-secondary', cb:()=>window.decideConsent(false)}]); }
         };
@@ -1040,8 +1077,25 @@
             const b=document.getElementById('modal-backdrop'), d=document.getElementById('generic-modal');
             b.classList.remove('show'); d.classList.remove('show'); setTimeout(()=>{b.style.display='none'; d.style.display='none';},300);
         }
+        
+        // Initial check to hide the unmute button if audio permission is already granted in the past
+        // This relies on the browser's ability to check permission state, which might vary.
+        document.addEventListener("DOMContentLoaded", () => {
+            if (window.AudioContext || window.webkitAudioContext) {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (ctx.state === 'running' || localStorage.getItem('audio_unlocked') === 'true') {
+                    AudioEngine.isUnlocked = true;
+                    document.getElementById('unmuteButton').classList.add('hidden');
+                } else {
+                    document.getElementById('unmuteButton').classList.remove('hidden');
+                }
+            } else {
+                // Hide button if no AudioContext API is available
+                document.getElementById('unmuteButton').classList.add('hidden');
+            }
 
-        document.addEventListener("DOMContentLoaded", window.initConsent);
+            window.initConsent();
+        });
     </script>
 
 
